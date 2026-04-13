@@ -38,14 +38,14 @@ Home services marketplace (like Rapido) — TypeScript microservices + MongoDB +
 - [x] Docker Compose — all 9 services + 7 MongoDB instances + Redis + RabbitMQ
 
 ## Next Steps (Phase 2) 🔜
-- [ ] Add `tsconfig.json` to each service (copy from auth-service pattern)
-- [ ] Add `.env` files for each remaining service (copy from auth-service `.env.example` pattern)
-- [ ] Add internal endpoints to worker-service: `/internal/workers/stats`, `/internal/workers/pending`, `/internal/workers/:id/rating`, `/internal/workers/:id/verification`, `/internal/workers/:id/block`, `/internal/workers/:id/wallet`
-- [ ] Add internal endpoints to user-service: `/internal/users/:id/block`, `/internal/users/:id/wallet`
-- [ ] Add internal endpoints to booking-service: `/internal/bookings`, `/internal/bookings/stats`, `/internal/bookings/disputed`, `/internal/bookings/:id/resolve`
-- [ ] Add `tsconfig.json` files to remaining services
-- [ ] Write install script (`scripts/setup.sh`)
-- [ ] React Native mobile app scaffold (Expo)
+- [x] Add `tsconfig.json` to each service (copy from auth-service pattern)
+- [x] Add `.env.example` files for each service
+- [x] Add internal endpoints to worker-service: `/internal/workers/stats`, `/internal/workers/pending`, `/internal/workers/:id/rating`, `/internal/workers/:id/verification`, `/internal/workers/:id/block`, `/internal/workers/:id/wallet`
+- [x] Add internal endpoints to user-service: `/internal/users/:phone/block`, `/internal/users/:phone/wallet`, `/internal/users/stats`
+- [x] Add internal endpoints to booking-service: `/internal/bookings`, `/internal/bookings/stats`, `/internal/bookings/disputed`, `/internal/bookings/:id/resolve`, `/internal/bookings/:id/dispute`
+- [x] Write `scripts/setup.sh` (installs all deps + copies .env files)
+- [x] Write `scripts/generate-admin-hash.js` (bcrypt hash generator)
+- [x] React Native mobile app scaffold (Expo) — `/mobile-app/` — PhoneScreen, OtpScreen, HomeScreen (category grid), WorkerListScreen, WorkerProfileScreen, PriceOfferModal (matches screenshot), BookingTrackingScreen (Socket.io live), BookingHistoryScreen, ProfileScreen, WorkerDashboard
 - [ ] React.js admin web panel scaffold
 - [ ] Scheduled booking feature (book for future date)
 - [ ] Subscription/monthly plan model

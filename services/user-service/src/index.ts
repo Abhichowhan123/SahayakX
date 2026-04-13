@@ -3,7 +3,8 @@ import cors      from 'cors';
 import helmet    from 'helmet';
 import mongoose  from 'mongoose';
 import dotenv    from 'dotenv';
-import { userRouter, internalUserRouter } from './routes/user.routes';
+import { userRouter } from './routes/user.routes';
+import internalRoutes from './routes/internal.routes';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ app.use(express.json());
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'user-service' }));
 
 app.use('/users/me',       userRouter);
-app.use('/internal/users', internalUserRouter);
+app.use('/internal/users', internalRoutes);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[User Service Error]', err);

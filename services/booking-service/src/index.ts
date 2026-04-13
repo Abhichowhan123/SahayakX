@@ -5,7 +5,8 @@ import mongoose  from 'mongoose';
 import http      from 'http';
 import { Server } from 'socket.io';
 import dotenv    from 'dotenv';
-import bookingRoutes from './routes/booking.routes';
+import bookingRoutes  from './routes/booking.routes';
+import internalRoutes from './routes/internal.routes';
 import { connectRabbitMQ } from '@serveease/shared/events';
 
 dotenv.config();
@@ -23,7 +24,8 @@ app.use(express.json());
 app.use((req: any, _res, next) => { req.io = io; next(); });
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'booking-service' }));
-app.use('/bookings', bookingRoutes);
+app.use('/bookings',          bookingRoutes);
+app.use('/internal/bookings', internalRoutes);
 
 // ─── Socket.io — Real-time tracking ──────────────────────────────────────────
 io.on('connection', (socket) => {

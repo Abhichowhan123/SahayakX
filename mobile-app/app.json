@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "ServeEase",
+    "slug": "serveease",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#7ED321"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.serveease.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ServeEase needs your location to find nearby workers.",
+        "NSLocationAlwaysUsageDescription": "ServeEase uses your location to track service progress.",
+        "NSCameraUsageDescription": "ServeEase needs camera access to upload your Aadhaar card.",
+        "NSPhotoLibraryUsageDescription": "ServeEase needs photo access to upload profile and verification photos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#7ED321"
+      },
+      "package": "com.serveease.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-location",
+      [
+        "expo-image-picker",
+        { "photosPermission": "ServeEase needs photo access for verification." }
+      ]
+    ],
+    "extra": {
+      "eas": { "projectId": "your-eas-project-id" }
+    }
+  }
+}

@@ -3,7 +3,8 @@ import cors     from 'cors';
 import helmet   from 'helmet';
 import mongoose from 'mongoose';
 import dotenv   from 'dotenv';
-import { workerRouter, internalWorkerRouter } from './routes/worker.routes';
+import { workerRouter } from './routes/worker.routes';
+import internalRoutes from './routes/internal.routes';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ app.use(express.json());
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'worker-service' }));
 
 app.use('/workers',          workerRouter);
-app.use('/internal/workers', internalWorkerRouter);
+app.use('/internal/workers', internalRoutes);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[Worker Service Error]', err);
