@@ -1,13 +1,29 @@
 {
   "name": "@serveease/shared",
   "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": {
+    "./types": "./dist/types/index.js",
+    "./utils": "./dist/utils/index.js",
+    "./events": "./dist/events/index.js"
+  },
+  "typesVersions": {
+    "*": {
+      "types":  ["./dist/types/index.d.ts"],
+      "utils":  ["./dist/utils/index.d.ts"],
+      "events": ["./dist/events/index.d.ts"]
+    }
+  },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev":   "tsc --watch"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "mongodb":  "^6.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "typescript":     "^5.3.3",
+    "@types/node":    "^20.11.0",
+    "@types/amqplib": "^0.10.5"
   }
 }

@@ -1,4 +1,4 @@
-import amqplib, { Channel, Connection } from 'amqplib';
+import amqplib, { Channel, ChannelModel, ConsumeMessage } from 'amqplib';
 
 export enum QueueName {
   BOOKING_CREATED        = 'booking.created',
@@ -10,8 +10,8 @@ export enum QueueName {
   WORKER_REJECTED        = 'worker.rejected',
 }
 
-let connection: Connection | null = null;
-let channel:    Channel    | null = null;
+let connection: ChannelModel | null = null;
+let channel:    Channel      | null = null;
 
 export const connectRabbitMQ = async (url: string): Promise<Channel> => {
   connection = await amqplib.connect(url);
@@ -23,7 +23,7 @@ export const connectRabbitMQ = async (url: string): Promise<Channel> => {
   }
 
   console.log('[RabbitMQ] Connected and queues asserted');
-  return channel;
+  return channel!;
 };
 
 export const publishEvent = <T>(queue: QueueName, payload: T): void => {
@@ -40,7 +40,7 @@ export const consumeEvent = <T>(
   handler: (payload: T) => Promise<void>,
 ): void => {
   if (!channel) throw new Error('RabbitMQ channel not initialized');
-  channel.consume(queue, async (msg) => {
+  channel.consume(queue, async (msg: ConsumeMessage | null) => {
     if (!msg) return;
     try {
       const payload = JSON.parse(msg.content.toString()) as T;

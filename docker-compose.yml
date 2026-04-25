@@ -110,7 +110,9 @@ services:
   # ─── Microservices ──────────────────────────────────────────────────────────
 
   auth-service:
-    build: ./services/auth-service
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
     container_name: serveease-auth
     env_file: ./services/auth-service/.env
     environment:
@@ -125,7 +127,9 @@ services:
     restart: unless-stopped
 
   user-service:
-    build: ./services/user-service
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
     container_name: serveease-user
     env_file: ./services/user-service/.env
     environment:
@@ -137,7 +141,9 @@ services:
     restart: unless-stopped
 
   worker-service:
-    build: ./services/worker-service
+    build:
+      context: .
+      dockerfile: services/worker-service/Dockerfile
     container_name: serveease-worker
     env_file: ./services/worker-service/.env
     environment:
@@ -150,7 +156,9 @@ services:
     restart: unless-stopped
 
   catalog-service:
-    build: ./services/catalog-service
+    build:
+      context: .
+      dockerfile: services/catalog-service/Dockerfile
     container_name: serveease-catalog
     environment:
       - PORT=3004
@@ -161,7 +169,9 @@ services:
     restart: unless-stopped
 
   booking-service:
-    build: ./services/booking-service
+    build:
+      context: .
+      dockerfile: services/booking-service/Dockerfile
     container_name: serveease-booking
     env_file: ./services/booking-service/.env
     environment:
@@ -177,7 +187,9 @@ services:
     restart: unless-stopped
 
   payment-service:
-    build: ./services/payment-service
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
     container_name: serveease-payment
     env_file: ./services/payment-service/.env
     environment:
@@ -192,7 +204,9 @@ services:
     restart: unless-stopped
 
   notification-service:
-    build: ./services/notification-service
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
     container_name: serveease-notification
     env_file: ./services/notification-service/.env
     environment:
@@ -204,7 +218,9 @@ services:
     restart: unless-stopped
 
   review-service:
-    build: ./services/review-service
+    build:
+      context: .
+      dockerfile: services/review-service/Dockerfile
     container_name: serveease-review
     environment:
       - PORT=3008
@@ -216,7 +232,9 @@ services:
     restart: unless-stopped
 
   admin-service:
-    build: ./services/admin-service
+    build:
+      context: .
+      dockerfile: services/admin-service/Dockerfile
     container_name: serveease-admin
     environment:
       - PORT=3009
