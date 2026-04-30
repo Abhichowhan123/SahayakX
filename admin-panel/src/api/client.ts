@@ -1,8 +1,14 @@
 import axios, { AxiosInstance } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
-// For Android emulator use 10.0.2.2, for real device use your LAN IP e.g. 192.168.1.x
 export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:80';
+console.log('[API] BASE_URL:', BASE_URL);
+
+const getToken = () =>
+  Platform.OS === 'web'
+    ? Promise.resolve(localStorage.getItem('admin_token'))
+    : SecureStore.getItemAsync('admin_token');
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -11,7 +17,7 @@ const api: AxiosInstance = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync('admin_token');
+  const token = await getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });

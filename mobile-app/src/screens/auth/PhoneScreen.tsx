@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList }        from '../../navigation';
@@ -16,11 +16,14 @@ export default function PhoneScreen({ navigation }: Props) {
   const [phone,       setPhone]       = useState('');
   const [role,        setRole]        = useState<'customer' | 'worker'>('customer');
   const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState('');
 
   const handleSend = async () => {
-    const cleaned = phone.replace(/\s+/g, '');
-    if (!/^\+?[1-9]\d{9,14}$/.test(cleaned)) {
-      Alert.alert('Invalid number', 'Please enter a valid phone number with country code e.g. +919876543210');
+    setError('');
+    const digits  = phone.replace(/\D/g, '');
+    const cleaned = '+91' + digits.slice(-10);
+    if (digits.length < 10) {
+      setError('Please enter a valid 10-digit mobile number');
       return;
     }
     setLoading(true);
@@ -28,7 +31,7 @@ export default function PhoneScreen({ navigation }: Props) {
       await sendOtp(cleaned, role);
       navigation.navigate('Otp', { phone: cleaned, role });
     } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.message || 'Failed to send OTP. Try again.');
+      setError(err?.response?.data?.message || 'Failed to send OTP. Try again.');
     } finally {
       setLoading(false);
     }
@@ -75,6 +78,8 @@ export default function PhoneScreen({ navigation }: Props) {
 
         <Text style={styles.hint}>We'll send a 6-digit OTP to verify your number</Text>
 
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
         <TouchableOpacity style={styles.btn} onPress={handleSend} disabled={loading}>
           {loading
             ? <ActivityIndicator color={COLORS.white} />
@@ -111,4 +116,5 @@ const styles = StyleSheet.create({
   btnText:        { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.white },
   terms:          { fontSize: FONTS.sizes.xs, color: COLORS.textMuted, textAlign: 'center', lineHeight: 18 },
   link:           { color: COLORS.primary, fontWeight: '600' },
+  error:          { color: 'red', fontSize: FONTS.sizes.sm, marginBottom: SPACING.sm, textAlign: 'center' },
 });

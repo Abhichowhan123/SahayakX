@@ -17,6 +17,7 @@ import WorkerProfileScreen  from '../screens/workers/WorkerProfileScreen';
 import BookingTrackingScreen from '../screens/booking/BookingTrackingScreen';
 import BookingHistoryScreen from '../screens/booking/BookingHistoryScreen';
 import ProfileScreen        from '../screens/profile/ProfileScreen';
+import EditProfileScreen    from '../screens/profile/EditProfileScreen';
 // Worker screens
 import WorkerDashboard      from '../screens/workers/WorkerDashboard';
 
@@ -26,6 +27,7 @@ export type RootStackParamList = {
   WorkerList:       { category: string; subType?: string; categoryLabel: string };
   WorkerProfile:    { workerId: string };
   BookingTracking:  { bookingId: string };
+  EditProfile:      undefined;
 };
 
 export type AuthStackParamList = {
@@ -118,6 +120,7 @@ export default function AppNavigator() {
             <Stack.Screen name="WorkerList"       component={WorkerListScreen}      />
             <Stack.Screen name="WorkerProfile"    component={WorkerProfileScreen}   />
             <Stack.Screen name="BookingTracking"  component={BookingTrackingScreen} />
+            <Stack.Screen name="EditProfile"      component={EditProfileScreen}     />
           </>
         )}
       </Stack.Navigator>

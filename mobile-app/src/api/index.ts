@@ -2,8 +2,22 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-// Change this to your API gateway URL
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:80';
+
+const getStoredToken = () =>
+  Platform.OS === 'web'
+    ? Promise.resolve(localStorage.getItem('auth_token'))
+    : SecureStore.getItemAsync('auth_token');
+
+const setStoredToken = (token: string) =>
+  Platform.OS === 'web'
+    ? Promise.resolve(localStorage.setItem('auth_token', token))
+    : SecureStore.setItemAsync('auth_token', token);
+
+const removeStoredToken = () =>
+  Platform.OS === 'web'
+    ? Promise.resolve(localStorage.removeItem('auth_token'))
+    : SecureStore.deleteItemAsync('auth_token');
 
 const api: AxiosInstance = axios.create({
   baseURL:        BASE_URL,
@@ -13,7 +27,7 @@ const api: AxiosInstance = axios.create({
 
 // ─── Request interceptor: inject JWT ─────────────────────────────────────────
 api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync('auth_token');
+  const token = await getStoredToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -23,17 +37,17 @@ api.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
-      const token = await SecureStore.getItemAsync('auth_token');
+      const token = await getStoredToken();
       if (token) {
         try {
           const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { token });
-          await SecureStore.setItemAsync('auth_token', data.data.token);
+          await setStoredToken(data.data.token);
           if (error.config) {
             error.config.headers.Authorization = `Bearer ${data.data.token}`;
             return api.request(error.config);
           }
         } catch {
-          await SecureStore.deleteItemAsync('auth_token');
+          await removeStoredToken();
         }
       }
     }

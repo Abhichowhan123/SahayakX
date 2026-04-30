@@ -236,6 +236,7 @@ services:
       context: .
       dockerfile: services/admin-service/Dockerfile
     container_name: serveease-admin
+    env_file: ./services/admin-service/.env
     environment:
       - PORT=3009
       - MONGODB_URI=mongodb://mongo-admin:27017/serveease_admin
@@ -243,8 +244,6 @@ services:
       - USER_SERVICE_URL=http://user-service:3002
       - BOOKING_SERVICE_URL=http://booking-service:3005
       - ADMIN_USERNAME=admin
-      # Generate: node -e "const b=require('bcryptjs');console.log(b.hashSync('admin123',10))"
-      - ADMIN_PASSWORD_HASH=$$2b$$10$$changethishashforproduction
       - ADMIN_JWT_SECRET=admin_super_secret_change_in_prod
     networks: [serveease-net]
     depends_on: [worker-service, user-service, booking-service]
@@ -257,6 +256,7 @@ services:
     container_name: serveease-gateway
     ports:
       - "80:80"
+      - "8080:80"
       - "443:443"
     volumes:
       - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro

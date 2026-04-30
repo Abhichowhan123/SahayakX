@@ -1,6 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { authApi } from '../api';
+
+const storage = {
+  get: (key: string) =>
+    Platform.OS === 'web'
+      ? Promise.resolve(localStorage.getItem(key))
+      : SecureStore.getItemAsync(key),
+  set: (key: string, value: string) =>
+    Platform.OS === 'web'
+      ? Promise.resolve(localStorage.setItem(key, value))
+      : SecureStore.setItemAsync(key, value),
+  del: (key: string) =>
+    Platform.OS === 'web'
+      ? Promise.resolve(localStorage.removeItem(key))
+      : SecureStore.deleteItemAsync(key),
+};
 
 interface AuthUser {
   phone: string;
@@ -30,9 +46,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const restore = async () => {
       try {
-        const stored = await SecureStore.getItemAsync('auth_token');
-        const role   = (await SecureStore.getItemAsync('user_role')) as AuthUser['role'] | null;
-        const phone  = await SecureStore.getItemAsync('user_phone');
+        const stored = await storage.get('auth_token');
+        const role   = (await storage.get('user_role')) as AuthUser['role'] | null;
+        const phone  = await storage.get('user_phone');
         if (stored && phone && role) {
           setToken(stored);
           setUser({ phone, role });
@@ -55,9 +71,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data } = await authApi.verifyOtp(phone, otp);
     const { token: newToken, role, phone: userPhone } = data.data;
 
-    await SecureStore.setItemAsync('auth_token', newToken);
-    await SecureStore.setItemAsync('user_role',  role);
-    await SecureStore.setItemAsync('user_phone', userPhone);
+    await storage.set('auth_token', newToken);
+    await storage.set('user_role',  role);
+    await storage.set('user_phone', userPhone);
 
     setToken(newToken);
     setUser({ phone: userPhone, role });
@@ -66,9 +82,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try { await authApi.logout(); } catch { /* ignore */ }
-    await SecureStore.deleteItemAsync('auth_token');
-    await SecureStore.deleteItemAsync('user_role');
-    await SecureStore.deleteItemAsync('user_phone');
+    await storage.del('auth_token');
+    await storage.del('user_role');
+    await storage.del('user_phone');
     setToken(null);
     setUser(null);
   };

@@ -40,18 +40,26 @@ const adminAuth = (req: any, res: any, next: any) => {
   }
 };
 
+// Hash generated at startup from ADMIN_PASSWORD (avoids $ interpolation issues in docker-compose)
+let ADMIN_PASS_HASH = '';
+const PLAIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (PLAIN_PASSWORD) {
+  bcrypt.hash(PLAIN_PASSWORD, 10).then(h => { ADMIN_PASS_HASH = h; });
+} else {
+  ADMIN_PASS_HASH = process.env.ADMIN_PASSWORD_HASH || '';
+}
+
 // ─── POST /admin/login ────────────────────────────────────────────────────────
 app.post('/admin/login', async (req, res) => {
   const { username, password } = req.body;
   const ADMIN_USER = process.env.ADMIN_USERNAME || 'admin';
-  const ADMIN_PASS = process.env.ADMIN_PASSWORD_HASH || '';
 
   if (username !== ADMIN_USER) {
     res.status(401).json(failure('Invalid credentials'));
     return;
   }
 
-  const valid = await bcrypt.compare(password, ADMIN_PASS);
+  const valid = await bcrypt.compare(password, ADMIN_PASS_HASH);
   if (!valid) { res.status(401).json(failure('Invalid credentials')); return; }
 
   const token = jwt.sign({ username, role: 'admin' }, ADMIN_JWT_SECRET, { expiresIn: '8h' });
