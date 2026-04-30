@@ -102,29 +102,6 @@ app.post('/reviews/:id/reply', authenticate, requireRole('worker'), async (req, 
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'review-service' }));
 
-// Auth middleware (reused inline for simplicity)
-async function authenticate(req: any, res: any, next: any) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) { res.status(401).json(failure('Authentication required')); return; }
-  try {
-    const { data } = await axios.get(
-      `${process.env.AUTH_SERVICE_URL || 'http://auth-service:3001'}/auth/validate`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    req.user = data.data;
-    next();
-  } catch { res.status(401).json(failure('Invalid or expired token')); }
-}
-
-function requireRole(...roles: string[]) {
-  return (req: any, res: any, next: any) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403).json(failure('Insufficient permissions')); return;
-    }
-    next();
-  };
-}
-
 const start = async () => {
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/serveease_reviews');
   console.log('[Review Service] MongoDB connected');

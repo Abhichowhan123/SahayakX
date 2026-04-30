@@ -20,13 +20,25 @@ app.use(cors());
 app.use(express.json());
 
 // ─── Firebase Admin Init ──────────────────────────────────────────────────────
-const firebaseApp = admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId:    process.env.FIREBASE_PROJECT_ID,
-    clientEmail:  process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey:   process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  }),
-});
+let firebaseReady = false;
+try {
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const hasRealCreds = privateKey && !privateKey.includes('YOUR_KEY_HERE') && process.env.FIREBASE_PROJECT_ID;
+  if (hasRealCreds) {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId:   process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey,
+      }),
+    });
+    firebaseReady = true;
+  } else {
+    console.warn('[Notification] Firebase credentials not configured — push notifications disabled');
+  }
+} catch (err) {
+  console.warn('[Notification] Firebase init failed — push notifications disabled:', err);
+}
 
 // ─── Twilio Init ──────────────────────────────────────────────────────────────
 const twilioClient = twilio(
@@ -36,7 +48,7 @@ const twilioClient = twilio(
 
 // ─── Push notification helper ─────────────────────────────────────────────────
 const sendPush = async (fcmToken: string, title: string, body: string, data?: Record<string, string>) => {
-  if (!fcmToken || process.env.NODE_ENV === 'development') {
+  if (!fcmToken || !firebaseReady || process.env.NODE_ENV === 'development') {
     console.log(`[Notification PUSH] ${title}: ${body}`);
     return;
   }

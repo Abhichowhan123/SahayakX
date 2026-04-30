@@ -7,10 +7,12 @@ import { success, failure }  from '@serveease/shared/utils';
 import { PaymentStatus, PLATFORM_CONFIG } from '@serveease/shared/types';
 import axios                 from 'axios';
 
-const razorpay = new Razorpay({
-  key_id:     process.env.RAZORPAY_KEY_ID     || '',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
-});
+function getRazorpay(): Razorpay {
+  const keyId     = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) throw new Error('Razorpay credentials not configured (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET)');
+  return new Razorpay({ key_id: keyId, key_secret: keySecret });
+}
 
 const WORKER_SERVICE_URL = process.env.WORKER_SERVICE_URL || 'http://worker-service:3003';
 const USER_SERVICE_URL   = process.env.USER_SERVICE_URL   || 'http://user-service:3002';
@@ -20,7 +22,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
   const { bookingId, amount, currency = 'INR' } = req.body;
   const customerId = (req as any).user.phone as string;
 
-  const order = await razorpay.orders.create({
+  const order = await getRazorpay().orders.create({
     amount:   Math.round(amount * 100), // Razorpay takes paise
     currency,
     receipt:  bookingId,
@@ -132,7 +134,7 @@ export const refundPayment = async (req: Request, res: Response): Promise<void> 
   if (!txn) { res.status(404).json(failure('No refundable transaction found')); return; }
 
   if (txn.razorpayPaymentId) {
-    await razorpay.payments.refund(txn.razorpayPaymentId, {
+    await getRazorpay().payments.refund(txn.razorpayPaymentId, {
       amount: Math.round(txn.amount * 100),
       notes:  { reason, bookingId },
     });
@@ -189,7 +191,7 @@ export const walletTopup = async (req: Request, res: Response): Promise<void> =>
   const userId   = (req as any).user.phone as string;
   const { amount } = req.body;
 
-  const order = await razorpay.orders.create({
+  const order = await getRazorpay().orders.create({
     amount:   Math.round(amount * 100),
     currency: 'INR',
     receipt:  `wallet_${userId}_${Date.now()}`,

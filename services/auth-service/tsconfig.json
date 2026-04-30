@@ -4,8 +4,8 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "paths": {
-      "@serveease/shared":   ["../../shared"],
-      "@serveease/shared/*": ["../../shared/*"]
+      "@serveease/shared":   ["../../shared/dist"],
+      "@serveease/shared/*": ["../../shared/dist/*/index"]
     }
   },
   "include": ["src/**/*"]

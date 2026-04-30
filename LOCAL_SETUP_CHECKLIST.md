@@ -167,7 +167,8 @@ Run these in your terminal to confirm services respond:
 
 ```bash
 curl http://localhost/health               # should return {"status":"ok",...}
-curl http://localhost/api/catalog/categories   # should return service list
+curl http://localhost/catalog/categories
+   # should return service list
 ```
 
 - [ ] Health check returns `{"status":"ok"}`
