@@ -1,7 +1,6 @@
 import express   from 'express';
 import cors      from 'cors';
 import helmet    from 'helmet';
-import mongoose  from 'mongoose';
 import jwt       from 'jsonwebtoken';
 import bcrypt    from 'bcryptjs';
 import axios     from 'axios';
@@ -13,7 +12,11 @@ dotenv.config();
 
 const app  = express();
 const PORT = parseInt(process.env.PORT || '3009', 10);
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'admin_secret_change_in_prod';
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (
+  process.env.NODE_ENV === 'production'
+    ? (() => { throw new Error('ADMIN_JWT_SECRET env var is required in production'); })()
+    : 'admin_secret_change_in_prod'
+);
 
 const WORKER_SERVICE_URL  = process.env.WORKER_SERVICE_URL  || 'http://worker-service:3003';
 const USER_SERVICE_URL    = process.env.USER_SERVICE_URL    || 'http://user-service:3002';
@@ -168,8 +171,6 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 const start = async () => {
-  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/serveease_admin');
-  console.log('[Admin Service] MongoDB connected');
   app.listen(PORT, () => console.log(`[Admin Service] Running on port ${PORT}`));
 };
 

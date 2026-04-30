@@ -64,6 +64,7 @@ export const SERVICE_CATEGORIES = [
   { id: 'babysitter',   label: 'Babysitter',    icon: '👶', color: '#E0F7FA', hasSubTypes: false },
   { id: 'pet_care',     label: 'Pet Care',      icon: '🐾', color: '#F1F8E9', hasSubTypes: false },
   { id: 'ac_technician',label: 'AC Technician', icon: '❄️', color: '#E0F2F1', hasSubTypes: false },
+  { id: 'pest_control', label: 'Pest Control',  icon: '🪲', color: '#FFF9C4', hasSubTypes: true  },
 ];
 
 export const CONSTRUCTION_SUBTYPES = ['Carpenter', 'Trowel/Mistri', 'Welder', 'Painter', 'Mason'];

@@ -32,7 +32,6 @@ router.patch('/:phone/wallet', async (req, res) => {
   user.wallet.balance = Math.max(0, user.wallet.balance + amount);
   if (amount < 0) {
     user.wallet.totalSpent = (user.wallet.totalSpent || 0) + Math.abs(amount);
-    user.cancellationCount += 1;
   }
   await user.save();
   res.json(success({ balance: user.wallet.balance }, 'Wallet updated'));

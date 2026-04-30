@@ -4,7 +4,7 @@ import { upload } from '../utils/s3';
 import {
   getMyProfile, registerWorker, updateProfile,
   submitVerification, updateLocation, toggleOnline,
-  getWorkersByCategory, getWorkerById, getWorkerByIdInternal,
+  getWorkersByCategory, getWorkerById,
 } from '../controllers/worker.controller';
 
 const router = Router();
@@ -30,8 +30,4 @@ router.post('/me/verify',
   submitVerification,
 );
 
-// Internal routes (service-to-service, no auth)
-const internalRouter = Router();
-internalRouter.get('/:id', getWorkerByIdInternal);
-
-export { router as workerRouter, internalRouter as internalWorkerRouter };
+export { router as workerRouter };

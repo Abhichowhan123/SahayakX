@@ -20,7 +20,6 @@ export enum ServiceCategory {
 
 export enum BookingStatus {
   SEARCHING              = 'searching',
-  OFFER_SENT             = 'offer_sent',
   ACCEPTED               = 'accepted',
   WORKER_EN_ROUTE        = 'worker_en_route',
   IN_PROGRESS            = 'in_progress',

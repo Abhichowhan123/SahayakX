@@ -157,13 +157,14 @@ export const startWork = async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  const oldStatus         = booking.status;
   booking.otp.verified    = true;
   booking.status          = BookingStatus.IN_PROGRESS;
   booking.schedule.startedAt = new Date();
   await booking.save();
 
   publishEvent(QueueName.BOOKING_STATUS_CHANGED, {
-    bookingId, oldStatus: BookingStatus.WORKER_EN_ROUTE, newStatus: BookingStatus.IN_PROGRESS,
+    bookingId, oldStatus, newStatus: BookingStatus.IN_PROGRESS,
     customerId, workerId: booking.workerId,
   });
 
@@ -219,6 +220,9 @@ export const cancelBooking = async (req: Request, res: Response): Promise<void> 
     return;
   }
 
+  // Capture old status before mutating
+  const oldStatus = booking.status;
+
   // Determine penalty
   const now             = new Date();
   const bookingAge      = (now.getTime() - booking.createdAt.getTime()) / 60000; // minutes
@@ -255,7 +259,7 @@ export const cancelBooking = async (req: Request, res: Response): Promise<void> 
 
   publishEvent(QueueName.BOOKING_STATUS_CHANGED, {
     bookingId,
-    oldStatus: booking.status,
+    oldStatus,
     newStatus: booking.status,
     customerId: booking.customerId,
     workerId:   booking.workerId,

@@ -9,7 +9,8 @@ import {
   refundPayment, chargePenalty, getHistory, walletTopup,
 } from './controllers/payment.controller';
 import { connectRabbitMQ, consumeEvent, QueueName } from '@serveease/shared/events';
-import { IPenaltyEvent, IPaymentEvent } from '@serveease/shared/types';
+import { IPenaltyEvent, IPaymentEvent, PaymentStatus } from '@serveease/shared/types';
+import axios from 'axios';
 
 dotenv.config();
 
@@ -39,16 +40,30 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
+const WORKER_SERVICE_URL = process.env.WORKER_SERVICE_URL || 'http://worker-service:3003';
+
 const start = async () => {
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/serveease_payments');
   console.log('[Payment Service] MongoDB connected');
 
-  const channel = await connectRabbitMQ(process.env.RABBITMQ_URL || 'amqp://localhost:5672');
+  await connectRabbitMQ(process.env.RABBITMQ_URL || 'amqp://localhost:5672');
+
+  // Release escrow to worker wallet when job is completed
+  consumeEvent<IPaymentEvent>(QueueName.PAYMENT_PROCESSED, async (event) => {
+    if (event.status !== PaymentStatus.RELEASED) return;
+    try {
+      await axios.patch(`${WORKER_SERVICE_URL}/internal/workers/${event.workerId}/wallet`, {
+        amount: event.amount,
+      });
+      console.log(`[Payment] Released ₹${event.amount} to worker ${event.workerId} for booking ${event.bookingId}`);
+    } catch (err) {
+      console.error('[Payment] Failed to credit worker wallet:', err);
+    }
+  });
 
   // Listen for penalty events
   consumeEvent<IPenaltyEvent>(QueueName.PENALTY_CHARGED, async (event) => {
     console.log('[Payment] Penalty event received:', event);
-    // chargePenalty logic could be called here directly
   });
 
   app.listen(PORT, () => console.log(`[Payment Service] Running on port ${PORT}`));

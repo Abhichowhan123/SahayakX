@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 // Change this to your API gateway URL
@@ -46,7 +47,7 @@ export const authApi = {
     api.post('/auth/send-otp', { phone, role }),
 
   verifyOtp: (phone: string, otp: string, fcmToken?: string) =>
-    api.post('/auth/verify-otp', { phone, otp, fcmToken, platform: 'mobile' }),
+    api.post('/auth/verify-otp', { phone, otp, fcmToken, platform: Platform.OS }),
 
   logout:    () => api.post('/auth/logout'),
 };

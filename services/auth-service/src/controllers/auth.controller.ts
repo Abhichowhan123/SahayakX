@@ -76,6 +76,10 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
   record.verified = true;
   await record.save();
 
+  // Determine if this is the user's first login
+  const existingSessionCount = await SessionModel.countDocuments({ userId: phone });
+  const isNewUser = existingSessionCount === 0;
+
   // Issue JWT
   // userId will be resolved by user/worker service via phone lookup
   // For auth service we issue with phone as userId placeholder
@@ -87,7 +91,7 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
   // Cache session in Redis
   await redisClient.setEx(`session:${token}`, 7 * 24 * 3600, JSON.stringify({ userId: phone, role: record.role, phone }));
 
-  res.json(success({ token, role: record.role, phone, isNewUser: true }, 'Login successful'));
+  res.json(success({ token, role: record.role, phone, isNewUser }, 'Login successful'));
 };
 
 // ─── POST /auth/refresh ──────────────────────────────────────────────────────

@@ -136,23 +136,24 @@ export const getWorkersByCategory = async (req: Request, res: Response): Promise
 
   if (subType)         filter['serviceSubTypes'] = subType;
 
-  // Geo-based if coordinates provided
+  // Geo-based if coordinates provided — use $geoWithin so skip/pagination works
   if (lat && lng) {
+    const radiusRadians = (parseFloat(maxDistanceKm) * 1000) / 6378137; // metres → radians
     (filter as any).location = {
-      $near: {
-        $geometry:    { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-        $maxDistance: parseFloat(maxDistanceKm) * 1000,
+      $geoWithin: {
+        $centerSphere: [[parseFloat(lng), parseFloat(lat)], radiusRadians],
       },
     };
   }
 
+  const projection = {
+    'verification.aadhaarNumber': 0,
+    'verification.bankAccount':   0,
+    'verification.panNumber':     0,
+  };
+
   const [workers, total] = await Promise.all([
-    WorkerModel.find(filter, {
-      // Exclude sensitive verification fields in list view
-      'verification.aadhaarNumber':  0,
-      'verification.bankAccount':    0,
-      'verification.panNumber':      0,
-    }).skip(skip).limit(limit).sort({ 'ratings.average': -1 }),
+    WorkerModel.find(filter, projection).skip(skip).limit(limit).sort({ 'ratings.average': -1 }),
     WorkerModel.countDocuments(filter),
   ]);
 

@@ -41,10 +41,13 @@ try {
 }
 
 // ─── Twilio Init ──────────────────────────────────────────────────────────────
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN,
-);
+const twilioReady = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+const twilioClient = twilioReady
+  ? twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
+  : null;
+if (!twilioReady) {
+  console.warn('[Notification] Twilio credentials not configured — SMS notifications disabled');
+}
 
 // ─── Push notification helper ─────────────────────────────────────────────────
 const sendPush = async (fcmToken: string, title: string, body: string, data?: Record<string, string>) => {
@@ -63,6 +66,10 @@ const sendPush = async (fcmToken: string, title: string, body: string, data?: Re
 const sendSms = async (phone: string, message: string) => {
   if (process.env.NODE_ENV === 'development') {
     console.log(`[Notification SMS] ${phone}: ${message}`);
+    return;
+  }
+  if (!twilioClient) {
+    console.warn(`[Notification] SMS skipped (Twilio not configured): ${message}`);
     return;
   }
   try {

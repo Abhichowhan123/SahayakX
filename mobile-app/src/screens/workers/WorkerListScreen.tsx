@@ -6,7 +6,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp }                 from '@react-navigation/native';
 import { RootStackParamList }        from '../../navigation';
-import { workerApi }                 from '../../api';
+import { workerApi, bookingApi }     from '../../api';
 import PriceOfferModal               from '../../components/booking/PriceOfferModal';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
@@ -61,6 +61,30 @@ export default function WorkerListScreen({ navigation, route }: Props) {
   const handleBook = (worker: Worker) => {
     setSelectedWorker(worker);
     setPriceModalVisible(true);
+  };
+
+  const handleConfirmBooking = async (offeredPrice?: number) => {
+    if (!selectedWorker) return;
+    setPriceModalVisible(false);
+    try {
+      const today = new Date();
+      const { data } = await bookingApi.create({
+        workerId:          selectedWorker._id,
+        serviceCategory:   category,
+        serviceSubType:    subType,
+        requestedDate:     today.toISOString().split('T')[0],
+        requestedTimeSlot: 'now',
+        estimatedDuration: 1,
+        customerAddress:   {},
+        paymentMethod:     'cash',
+        customerOfferedPrice: offeredPrice,
+      });
+      navigation.navigate('BookingTracking', { bookingId: data.data.bookingId });
+    } catch {
+      Alert.alert('Booking Failed', 'Could not create booking. Please try again.');
+    } finally {
+      setSelectedWorker(null);
+    }
   };
 
   const renderWorker = ({ item }: { item: Worker }) => (
@@ -142,10 +166,7 @@ export default function WorkerListScreen({ navigation, route }: Props) {
           visible={priceModalVisible}
           worker={selectedWorker}
           onClose={() => { setPriceModalVisible(false); setSelectedWorker(null); }}
-          onBook={(offeredPrice) => {
-            setPriceModalVisible(false);
-            navigation.navigate('WorkerProfile', { workerId: selectedWorker._id });
-          }}
+          onBook={handleConfirmBooking}
         />
       )}
     </SafeAreaView>

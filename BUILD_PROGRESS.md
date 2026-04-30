@@ -46,17 +46,25 @@ Home services marketplace (like Rapido) — TypeScript microservices + MongoDB +
 - [x] Write `scripts/setup.sh` (installs all deps + copies .env files)
 - [x] Write `scripts/generate-admin-hash.js` (bcrypt hash generator)
 - [x] React Native mobile app scaffold (Expo) — `/mobile-app/` — PhoneScreen, OtpScreen, HomeScreen (category grid), WorkerListScreen, WorkerProfileScreen, PriceOfferModal (matches screenshot), BookingTrackingScreen (Socket.io live), BookingHistoryScreen, ProfileScreen, WorkerDashboard
-- [ ] React.js admin web panel scaffold
-- [ ] Scheduled booking feature (book for future date)
-- [ ] Subscription/monthly plan model
-- [ ] In-app chat (Socket.io rooms per booking)
-- [ ] SOS / safety button
-- [ ] Referral + loyalty points system
-- [ ] Multi-language (i18n)
-- [ ] AI price suggestion (based on location + demand)
-- [ ] Kubernetes manifests (k8s/)
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Unit + integration tests
+- [x] Admin panel (Expo app) — `/admin-panel/` — Dashboard (health), Auth Test, Users, Workers, Catalog, Bookings, Payments, Reviews, Admin screens. Runs on web (`npm start` → `w`) and Android (`a` or Expo Go + QR)
+### Phase 3 — User-Facing Features (build in this order)
+
+- [ ] **START HERE → In-app chat** — Socket.io rooms per booking (customer ↔ worker); backend room logic in booking-service, chat screen in mobile-app
+- [ ] Scheduled bookings — book for a future date/time slot; add `scheduledAt` field to booking model + cron job to auto-dispatch
+- [ ] SOS / safety button — one-tap alert to admin + emergency contact; add endpoint in booking-service + SOS screen in mobile-app
+
+### Phase 4 — Growth Features
+
+- [ ] Referral + loyalty points — referral code on signup, points earned per completed booking, redeem against wallet
+- [ ] Subscription / monthly plan — recurring plan for maid/cook/gym trainer; fixed monthly charge, auto-booking each day
+- [ ] AI price suggestion — suggest fair price based on location + demand + time of day (can use simple heuristic first, ML later)
+- [ ] Multi-language (i18n) — Hindi + regional languages; use i18n-js library in mobile-app
+
+### Phase 5 — Production Readiness
+
+- [ ] Unit + integration tests — Jest tests for each service; start with auth-service and booking-service
+- [ ] CI/CD pipeline — GitHub Actions: lint → test → docker build → push to registry on merge to main
+- [ ] Kubernetes manifests — k8s/ folder with Deployment + Service + HPA for each microservice
 
 ## Key Design Decisions
 - Each microservice has its OWN MongoDB database (true microservice isolation)

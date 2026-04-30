@@ -26,7 +26,6 @@ export const uploadToS3 = async (
     Key:         filename,
     Body:        buffer,
     ContentType: mimetype,
-    ACL:         'private' as any,
   }));
 
   return `https://${BUCKET}.s3.amazonaws.com/${filename}`;

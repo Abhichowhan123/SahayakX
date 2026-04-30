@@ -3,7 +3,7 @@ import crypto from 'crypto';
 // ─── OTP ─────────────────────────────────────────────────────────────────────
 
 export const generateOTP = (length = 6): string =>
-  Array.from({ length }, () => Math.floor(Math.random() * 10)).join('');
+  Array.from({ length }, () => crypto.randomInt(0, 10)).join('');
 
 export const generateBookingId = (): string => {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -14,7 +14,11 @@ export const generateBookingId = (): string => {
 // ─── Encryption (for Aadhaar/bank details) ───────────────────────────────────
 
 const ALGORITHM  = 'aes-256-gcm';
-const SECRET_KEY = process.env.ENCRYPTION_KEY || 'serveease_default_key_32chars!!';
+const SECRET_KEY = process.env.ENCRYPTION_KEY || (
+  process.env.NODE_ENV === 'production'
+    ? (() => { throw new Error('ENCRYPTION_KEY env var is required in production'); })()
+    : 'serveease_default_key_32chars!!'
+);
 const KEY        = crypto.scryptSync(SECRET_KEY, 'salt', 32);
 
 export const encrypt = (text: string): string => {
