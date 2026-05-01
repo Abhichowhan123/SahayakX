@@ -1,5 +1,8 @@
 import crypto from 'crypto';
 
+export { createLogger } from './logger';
+export type { ServiceLogger, LogCtx } from './logger';
+
 // ─── OTP ─────────────────────────────────────────────────────────────────────
 
 export const generateOTP = (length = 6): string =>
@@ -69,6 +72,26 @@ export const getPaginationParams = (query: Record<string, string | undefined>) =
   skip:  (Math.max(1, parseInt(query.page || '1', 10)) - 1) *
           Math.min(50, parseInt(query.limit || '10', 10)),
 });
+
+// ─── Connection lifecycle logger ─────────────────────────────────────────────
+// Attaches Mongoose connection events so app logs mirror what MongoDB itself logs
+// (e.g. "Received first command on ingress connection since session start or auth handshake")
+
+interface EventEmitterLike { on(event: string, listener: (...args: any[]) => void): any; }
+
+const connLog = (level: string, service: string, event: string, extra?: object) =>
+  console.log(JSON.stringify({ ts: new Date().toISOString(), level, service, event, ...extra }));
+
+export const attachMongooseLogger = (conn: EventEmitterLike, service: string): void => {
+  conn.on('connecting',    () => connLog('info',  service, 'MONGO_CONNECTING'));
+  conn.on('connected',     () => connLog('info',  service, 'MONGO_CONNECTED'));
+  conn.on('open',          () => connLog('info',  service, 'MONGO_CONNECTION_OPEN'));
+  conn.on('disconnecting', () => connLog('warn',  service, 'MONGO_DISCONNECTING'));
+  conn.on('disconnected',  () => connLog('warn',  service, 'MONGO_DISCONNECTED'));
+  conn.on('close',         () => connLog('warn',  service, 'MONGO_CONNECTION_CLOSED'));
+  conn.on('reconnected',   () => connLog('info',  service, 'MONGO_RECONNECTED'));
+  conn.on('error',   (err) => connLog('error', service, 'MONGO_ERROR', { error: err?.message }));
+};
 
 // ─── Response helpers ─────────────────────────────────────────────────────────
 

@@ -13,8 +13,24 @@ export enum QueueName {
 let connection: ChannelModel | null = null;
 let channel:    Channel      | null = null;
 
+const rmqLog = (level: string, event: string, extra?: object) =>
+  console.log(JSON.stringify({ ts: new Date().toISOString(), level, service: 'rabbitmq-client', event, ...extra }));
+
 export const connectRabbitMQ = async (url: string): Promise<Channel> => {
   connection = await amqplib.connect(url);
+
+  // These fire for broker-level issues (auth failures, connection drops, etc.)
+  // "Connection not authenticating" in Docker logs means one of these fired on the broker side
+  (connection as any).on('error', (err: Error) =>
+    rmqLog('error', 'RABBITMQ_CONNECTION_ERROR', { error: err?.message }),
+  );
+  (connection as any).on('close', () =>
+    rmqLog('warn', 'RABBITMQ_CONNECTION_CLOSED'),
+  );
+  (connection as any).on('blocked', (reason: string) =>
+    rmqLog('warn', 'RABBITMQ_CONNECTION_BLOCKED', { reason }),
+  );
+
   channel    = await connection.createChannel();
 
   // Assert all queues

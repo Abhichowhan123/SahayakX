@@ -20,6 +20,7 @@ export const sendOtpSchema = Joi.object({
     'string.pattern.base': 'Phone number must be a valid international format e.g. +919876543210',
   }),
   role: Joi.string().valid('customer', 'worker').default('customer'),
+  mode: Joi.string().valid('login', 'register').default('login'),
 });
 
 export const verifyOtpSchema = Joi.object({

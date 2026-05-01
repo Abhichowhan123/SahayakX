@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { userApi, workerApi } from '../../api';
 import { useAuth }  from '../../context/AuthContext';
+import { appLogger } from '../../utils/logger';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
 export default function ProfileScreen({ navigation }: any) {
@@ -25,7 +26,9 @@ export default function ProfileScreen({ navigation }: any) {
         setProfile(p.data.data);
         setWallet(w.data.data);
       }
-    } catch { /* silent */ }
+    } catch (err) {
+      appLogger.error({ fn: 'fetchProfile', tag: 'ProfileScreen_fetchProfile_failed', screen: 'Profile' }, 'Failed to fetch profile', err);
+    }
   }, [isWorkerMode]);
 
   useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
@@ -40,12 +43,19 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   const handleLogout = () => {
+    const doLogout = async () => {
+      try {
+        await logout();
+      } catch (err) {
+        appLogger.error({ fn: 'handleLogout', tag: 'ProfileScreen_handleLogout_failed', screen: 'Profile' }, 'Logout failed', err);
+      }
+    };
     if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to logout?')) logout();
+      if (window.confirm('Are you sure you want to logout?')) doLogout();
     } else {
       Alert.alert('Logout', 'Are you sure you want to logout?', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
+        { text: 'Logout', style: 'destructive', onPress: doLogout },
       ]);
     }
   };

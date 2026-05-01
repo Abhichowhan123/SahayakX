@@ -9,6 +9,12 @@ export interface IWorkerDocument extends Document {
   bio:              string;
   experience:       number;
   skills:           string[];
+  languages:        string[];
+  serviceArea:      string;
+  availability: {
+    days:  string[];
+    shift: string;
+  };
   serviceCategory:  ServiceCategory;
   serviceSubTypes:  string[];
   verification: {
@@ -53,9 +59,15 @@ const WorkerSchema = new Schema<IWorkerDocument>({
   fullName:        { type: String, default: '' },
   email:           { type: String, sparse: true },
   profilePhoto:    String,
-  bio:             { type: String, default: '' },
-  experience:      { type: Number, default: 0 },
-  skills:          [String],
+  bio:          { type: String, default: '' },
+  experience:   { type: Number, default: 0 },
+  skills:       [String],
+  languages:    [String],
+  serviceArea:  { type: String, default: '' },
+  availability: {
+    days:  [String],
+    shift: { type: String, default: '' },
+  },
   serviceCategory: { type: String, enum: Object.values(ServiceCategory), required: true },
   serviceSubTypes: [String],
 

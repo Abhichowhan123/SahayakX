@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import dotenv   from 'dotenv';
 import { workerRouter } from './routes/worker.routes';
 import internalRoutes from './routes/internal.routes';
+import { attachMongooseLogger } from '@serveease/shared/utils';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 const start = async () => {
+  attachMongooseLogger(mongoose.connection, 'worker-service');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/serveease_workers');
   console.log('[Worker Service] MongoDB connected');
   app.listen(PORT, () => console.log(`[Worker Service] Running on port ${PORT}`));

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
-import { failure } from '@serveease/shared/utils';
+import { failure, createLogger } from '@serveease/shared/utils';
 
+const log = createLogger('payment-service');
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -13,7 +14,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     });
     (req as any).user = data.data;
     next();
-  } catch {
+  } catch (err) {
+    log.warn({ fn: 'authenticate', tag: 'paymentService_authenticate_tokenValidationFailed', action: 'AUTH_VALIDATE' }, 'Token validation failed against auth-service', { error: err instanceof Error ? err.message : String(err) });
     res.status(401).json(failure('Invalid or expired token'));
   }
 };

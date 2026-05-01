@@ -8,6 +8,7 @@ import { RouteProp }                 from '@react-navigation/native';
 import { RootStackParamList }        from '../../navigation';
 import { bookingApi }                from '../../api';
 import { io, Socket }                from 'socket.io-client';
+import { appLogger }                 from '../../utils/logger';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
 type Props = {
@@ -38,24 +39,47 @@ export default function BookingTrackingScreen({ navigation, route }: Props) {
   useEffect(() => {
     // Load booking
     bookingApi.getById(bookingId)
-      .then(({ data }) => setBooking(data.data))
-      .catch(() => Alert.alert('Error', 'Could not load booking'))
+      .then(({ data }) => {
+        setBooking(data.data);
+        appLogger.info({ fn: 'useEffect', tag: 'BookingTrackingScreen_useEffect_bookingLoaded', screen: 'BookingTracking' }, 'Booking loaded', { bookingId });
+      })
+      .catch((err) => {
+        appLogger.error({ fn: 'useEffect', tag: 'BookingTrackingScreen_useEffect_bookingLoadFailed', screen: 'BookingTracking' }, 'Could not load booking', err);
+        Alert.alert('Error', 'Could not load booking');
+      })
       .finally(() => setLoading(false));
 
     // Socket for live tracking
-    const socket = io(process.env.EXPO_PUBLIC_API_URL || 'http://localhost:80');
-    socketRef.current = socket;
-    socket.emit('join_booking', bookingId);
+    let socket: ReturnType<typeof io>;
+    try {
+      socket = io(process.env.EXPO_PUBLIC_API_URL || 'http://localhost:80');
+      socketRef.current = socket;
+      socket.emit('join_booking', bookingId);
 
-    socket.on('worker_moved', ({ lat, lng }: { lat: number; lng: number }) => {
-      setWorkerLocation({ lat, lng });
-    });
+      socket.on('connect_error', (err) => {
+        appLogger.error({ fn: 'useEffect', tag: 'BookingTrackingScreen_useEffect_socketConnectError', screen: 'BookingTracking' }, 'Socket connection error', err);
+      });
 
-    socket.on('booking_status', (update: any) => {
-      setBooking((prev: any) => prev ? { ...prev, status: update.newStatus } : prev);
-    });
+      socket.on('worker_moved', ({ lat, lng }: { lat: number; lng: number }) => {
+        if (typeof lat !== 'number' || typeof lng !== 'number') {
+          appLogger.warn({ fn: 'useEffect', tag: 'BookingTrackingScreen_useEffect_workerMovedBadData', screen: 'BookingTracking' }, 'Malformed worker_moved event', { lat, lng });
+          return;
+        }
+        setWorkerLocation({ lat, lng });
+      });
 
-    return () => { socket.disconnect(); };
+      socket.on('booking_status', (update: any) => {
+        if (!update?.newStatus) {
+          appLogger.warn({ fn: 'useEffect', tag: 'BookingTrackingScreen_useEffect_bookingStatusBadData', screen: 'BookingTracking' }, 'Malformed booking_status event', { update });
+          return;
+        }
+        setBooking((prev: any) => prev ? { ...prev, status: update.newStatus } : prev);
+      });
+    } catch (err) {
+      appLogger.error({ fn: 'useEffect', tag: 'BookingTrackingScreen_useEffect_socketSetupFailed', screen: 'BookingTracking' }, 'Failed to set up socket', err);
+    }
+
+    return () => { socketRef.current?.disconnect(); };
   }, [bookingId]);
 
   const handleStartWork = async () => {
@@ -75,8 +99,14 @@ export default function BookingTrackingScreen({ navigation, route }: Props) {
     Alert.alert('Cancel Booking', 'Are you sure? A cancellation fee may apply.', [
       { text: 'No',  style: 'cancel' },
       { text: 'Yes, Cancel', style: 'destructive', onPress: async () => {
-        await bookingApi.cancel(bookingId);
-        navigation.goBack();
+        try {
+          await bookingApi.cancel(bookingId);
+          appLogger.info({ fn: 'handleCancel', tag: 'BookingTrackingScreen_handleCancel_success', screen: 'BookingTracking' }, 'Booking cancelled', { bookingId });
+          navigation.goBack();
+        } catch (err: any) {
+          appLogger.error({ fn: 'handleCancel', tag: 'BookingTrackingScreen_handleCancel_failed', screen: 'BookingTracking' }, 'Failed to cancel booking', err);
+          Alert.alert('Error', err?.response?.data?.message || 'Could not cancel booking. Please try again.');
+        }
       }},
     ]);
   };

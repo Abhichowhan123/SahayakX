@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { appLogger } from '../utils/logger';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:80';
 
@@ -25,40 +26,67 @@ const api: AxiosInstance = axios.create({
   headers:        { 'Content-Type': 'application/json' },
 });
 
-// ─── Request interceptor: inject JWT ─────────────────────────────────────────
+// ─── Request interceptor: inject JWT + log outgoing request ──────────────────
 api.interceptors.request.use(async (config) => {
   const token = await getStoredToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  appLogger.apiReq(
+    config.method?.toUpperCase() || 'GET',
+    config.url || '',
+  );
   return config;
 });
 
-// ─── Response interceptor: auto-refresh on 401 ───────────────────────────────
+// ─── Response interceptor: auto-refresh on 401 + log response/error ──────────
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    appLogger.apiRes(
+      res.config.method?.toUpperCase() || 'GET',
+      res.config.url || '',
+      res.status,
+    );
+    return res;
+  },
   async (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    const method = error.config?.method?.toUpperCase() || 'GET';
+    const url    = error.config?.url || '';
+    const status = error.response?.status;
+
+    if (status === 401) {
       const token = await getStoredToken();
       if (token) {
         try {
           const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { token });
           await setStoredToken(data.data.token);
+          appLogger.info(
+            { fn: 'tokenRefresh', action: 'TOKEN_REFRESH' },
+            'Token auto-refreshed on 401',
+          );
           if (error.config) {
             error.config.headers.Authorization = `Bearer ${data.data.token}`;
             return api.request(error.config);
           }
-        } catch {
+        } catch (refreshErr) {
+          appLogger.error(
+            { fn: 'tokenRefresh', action: 'TOKEN_REFRESH' },
+            'Token refresh failed — logging out',
+            refreshErr,
+          );
           await removeStoredToken();
         }
       }
     }
+
+    appLogger.apiErr(method, url, status, error);
     return Promise.reject(error);
   },
 );
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
-  sendOtp:   (phone: string, role: 'customer' | 'worker' = 'customer') =>
-    api.post('/auth/send-otp', { phone, role }),
+  sendOtp:   (phone: string, role: 'customer' | 'worker' = 'customer', mode: 'login' | 'register' = 'login') =>
+    api.post('/auth/send-otp', { phone, role, mode }),
 
   verifyOtp: (phone: string, otp: string, fcmToken?: string) =>
     api.post('/auth/verify-otp', { phone, otp, fcmToken, platform: Platform.OS }),
@@ -99,6 +127,7 @@ export const workerApi = {
 
   // Worker-side
   register:         (data: object)                => api.post('/workers/register', data),
+  getMyProfile:     ()                            => api.get('/workers/me'),
   updateMyProfile:  (data: object)                => api.put('/workers/me', data),
   updateMyLocation: (lat: number, lng: number)    =>
     api.put('/workers/me/location', { latitude: lat, longitude: lng }),

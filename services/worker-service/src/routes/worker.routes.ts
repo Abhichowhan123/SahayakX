@@ -10,10 +10,9 @@ import {
 const router = Router();
 
 // Public routes
-router.get('/',    getWorkersByCategory);
-router.get('/:id', getWorkerById);
+router.get('/', getWorkersByCategory);
 
-// Authenticated worker routes
+// Authenticated worker routes — /me must come before /:id
 router.post('/register',    authenticate, requireRole('worker'), registerWorker);
 router.get('/me',           authenticate, requireRole('worker'), getMyProfile);
 router.put('/me',           authenticate, requireRole('worker'), updateProfile);
@@ -29,5 +28,8 @@ router.post('/me/verify',
   ]),
   submitVerification,
 );
+
+// Public — must come after /me routes so Express doesn't swallow them
+router.get('/:id', getWorkerById);
 
 export { router as workerRouter };

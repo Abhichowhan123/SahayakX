@@ -3,6 +3,7 @@ import { IAddress, IGeoPoint, IWallet } from '@serveease/shared/types';
 
 export interface IUserDocument extends Document {
   phone:              string;
+  role:               'customer' | 'worker';
   fullName:           string;
   email?:             string;
   profilePhoto?:      string;
@@ -32,6 +33,7 @@ const AddressSchema = new Schema<IAddress>({
 
 const UserSchema = new Schema<IUserDocument>({
   phone:        { type: String, required: true, unique: true, index: true },
+  role:         { type: String, enum: ['customer', 'worker'], required: true, default: 'customer' },
   fullName:     { type: String, default: '' },
   email:        { type: String, sparse: true },
   profilePhoto: String,

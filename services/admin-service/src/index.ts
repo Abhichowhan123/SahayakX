@@ -5,13 +5,15 @@ import jwt       from 'jsonwebtoken';
 import bcrypt    from 'bcryptjs';
 import axios     from 'axios';
 import dotenv    from 'dotenv';
-import { success, failure } from '@serveease/shared/utils';
+import { success, failure, createLogger } from '@serveease/shared/utils';
 import { VerificationStatus } from '@serveease/shared/types';
 
 dotenv.config();
 
 const app  = express();
 const PORT = parseInt(process.env.PORT || '3009', 10);
+const log  = createLogger('admin-service');
+
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (
   process.env.NODE_ENV === 'production'
     ? (() => { throw new Error('ADMIN_JWT_SECRET env var is required in production'); })()
@@ -29,13 +31,18 @@ app.use(express.json());
 // ─── Admin Auth Middleware ────────────────────────────────────────────────────
 const adminAuth = (req: any, res: any, next: any) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) { res.status(401).json(failure('Admin authentication required')); return; }
+  if (!token) {
+    log.warn({ fn: 'adminAuth', action: 'AUTH_CHECK' }, 'Admin request with no token');
+    res.status(401).json(failure('Admin authentication required'));
+    return;
+  }
   try {
     const payload = jwt.verify(token, ADMIN_JWT_SECRET) as any;
-    if (payload.role !== 'admin') throw new Error();
+    if (payload.role !== 'admin') throw new Error('Not admin role');
     req.admin = payload;
     next();
-  } catch {
+  } catch (err) {
+    log.warn({ fn: 'adminAuth', action: 'AUTH_CHECK' }, 'Invalid or expired admin token');
     res.status(401).json(failure('Invalid admin token'));
   }
 };
@@ -53,133 +60,226 @@ if (PLAIN_PASSWORD) {
 app.post('/admin/login', async (req, res) => {
   const { username, password } = req.body;
   const ADMIN_USER = process.env.ADMIN_USERNAME || 'admin';
+  const ctx = { fn: 'adminLogin', userId: username, role: 'admin', action: 'ADMIN_LOGIN' };
+  log.enter(ctx);
 
   if (username !== ADMIN_USER) {
+    log.warn(ctx, 'Invalid admin username', { attemptedUsername: username });
     res.status(401).json(failure('Invalid credentials'));
     return;
   }
 
   const valid = await bcrypt.compare(password, ADMIN_PASS_HASH);
-  if (!valid) { res.status(401).json(failure('Invalid credentials')); return; }
+  if (!valid) {
+    log.warn(ctx, 'Invalid admin password for username', { username });
+    res.status(401).json(failure('Invalid credentials'));
+    return;
+  }
 
   const token = jwt.sign({ username, role: 'admin' }, ADMIN_JWT_SECRET, { expiresIn: '8h' });
+  log.info(ctx, 'Admin login successful', { username });
   res.json(success({ token }, 'Admin logged in'));
 });
 
 // ─── GET /admin/dashboard ─────────────────────────────────────────────────────
-app.get('/admin/dashboard', adminAuth, async (_req, res) => {
-  // Aggregate stats from all services
+app.get('/admin/dashboard', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'getDashboard', userId: req.admin?.username, role: 'admin', action: 'GET_DASHBOARD' };
+  log.enter(ctx);
+
   try {
     const [workersRes, bookingsRes] = await Promise.allSettled([
       axios.get(`${WORKER_SERVICE_URL}/internal/workers/stats`),
       axios.get(`${BOOKING_SERVICE_URL}/internal/bookings/stats`),
     ]);
 
+    const workersFulfilled  = workersRes.status === 'fulfilled';
+    const bookingsFulfilled = bookingsRes.status === 'fulfilled';
+    log.info(ctx, 'Dashboard stats aggregated', { workersAvailable: workersFulfilled, bookingsAvailable: bookingsFulfilled });
+
+    if (!workersFulfilled)  log.warn(ctx, 'Worker service unavailable for dashboard stats');
+    if (!bookingsFulfilled) log.warn(ctx, 'Booking service unavailable for dashboard stats');
+
     res.json(success({
-      workers:  workersRes.status === 'fulfilled'  ? workersRes.value.data.data  : {},
-      bookings: bookingsRes.status === 'fulfilled' ? bookingsRes.value.data.data : {},
+      workers:  workersFulfilled  ? (workersRes  as any).value.data.data : {},
+      bookings: bookingsFulfilled ? (bookingsRes as any).value.data.data : {},
       timestamp: new Date(),
     }, 'Dashboard stats'));
   } catch (err) {
+    log.error(ctx, 'Dashboard aggregation error', err);
     res.json(success({ timestamp: new Date() }, 'Dashboard (some services unavailable)'));
   }
 });
 
 // ─── GET /admin/workers/pending-verification ──────────────────────────────────
-app.get('/admin/workers/pending-verification', adminAuth, async (req, res) => {
-  const { data } = await axios.get(
-    `${WORKER_SERVICE_URL}/internal/workers/pending`,
-    { params: req.query },
-  );
-  res.json(data);
+app.get('/admin/workers/pending-verification', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'getPendingWorkers', tag: 'adminService_getPendingWorkers', userId: req.admin?.username, role: 'admin', action: 'GET_PENDING_WORKERS' };
+  log.enter(ctx, { query: req.query });
+
+  try {
+    const { data } = await axios.get(`${WORKER_SERVICE_URL}/internal/workers/pending`, { params: req.query });
+    log.info(ctx, 'Pending workers fetched from worker-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_getPendingWorkers_failed' }, 'Failed to fetch pending workers', err);
+    res.status(500).json(failure('Internal server error'));
+  }
 });
 
 // ─── POST /admin/workers/:workerId/verify ─────────────────────────────────────
 app.post('/admin/workers/:workerId/verify', adminAuth, async (req: any, res) => {
   const { workerId } = req.params;
+  const ctx = { fn: 'verifyWorker', tag: 'adminService_verifyWorker', userId: req.admin?.username, role: 'admin', action: 'VERIFY_WORKER' };
+  log.enter(ctx, { workerId });
 
-  const { data } = await axios.patch(
-    `${WORKER_SERVICE_URL}/internal/workers/${workerId}/verification`,
-    { status: VerificationStatus.VERIFIED, verifiedBy: req.admin.username },
-  );
-
-  res.json(data);
+  try {
+    const { data } = await axios.patch(
+      `${WORKER_SERVICE_URL}/internal/workers/${workerId}/verification`,
+      { status: VerificationStatus.VERIFIED, verifiedBy: req.admin.username },
+    );
+    log.info(ctx, 'Worker verification approved', { workerId, verifiedBy: req.admin.username });
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_verifyWorker_failed' }, 'Failed to verify worker', err);
+    res.status(500).json(failure('Internal server error'));
+  }
 });
 
 // ─── POST /admin/workers/:workerId/reject ─────────────────────────────────────
-app.post('/admin/workers/:workerId/reject', adminAuth, async (req, res) => {
+app.post('/admin/workers/:workerId/reject', adminAuth, async (req: any, res) => {
   const { workerId }        = req.params;
   const { rejectionReason } = req.body;
+  const ctx = { fn: 'rejectWorker', tag: 'adminService_rejectWorker', userId: req.admin?.username, role: 'admin', action: 'REJECT_WORKER' };
+  log.enter(ctx, { workerId, rejectionReason });
 
-  const { data } = await axios.patch(
-    `${WORKER_SERVICE_URL}/internal/workers/${workerId}/verification`,
-    { status: VerificationStatus.REJECTED, rejectionReason },
-  );
-
-  res.json(data);
+  try {
+    const { data } = await axios.patch(
+      `${WORKER_SERVICE_URL}/internal/workers/${workerId}/verification`,
+      { status: VerificationStatus.REJECTED, rejectionReason },
+    );
+    log.info(ctx, 'Worker verification rejected', { workerId, rejectionReason });
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_rejectWorker_failed' }, 'Failed to reject worker', err);
+    res.status(500).json(failure('Internal server error'));
+  }
 });
 
 // ─── POST /admin/workers/:workerId/block ──────────────────────────────────────
-app.post('/admin/workers/:workerId/block', adminAuth, async (req, res) => {
-  const { workerId }    = req.params;
-  const { reason }      = req.body;
+app.post('/admin/workers/:workerId/block', adminAuth, async (req: any, res) => {
+  const { workerId } = req.params;
+  const { reason }   = req.body;
+  const ctx = { fn: 'blockWorker', tag: 'adminService_blockWorker', userId: req.admin?.username, role: 'admin', action: 'BLOCK_WORKER' };
+  log.enter(ctx, { workerId, reason });
 
-  const { data } = await axios.patch(
-    `${WORKER_SERVICE_URL}/internal/workers/${workerId}/block`,
-    { isBlocked: true, blockedReason: reason },
-  );
-  res.json(data);
+  try {
+    const { data } = await axios.patch(
+      `${WORKER_SERVICE_URL}/internal/workers/${workerId}/block`,
+      { isBlocked: true, blockedReason: reason },
+    );
+    log.info(ctx, 'Worker blocked', { workerId, reason });
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_blockWorker_failed' }, 'Failed to block worker', err);
+    res.status(500).json(failure('Internal server error'));
+  }
 });
 
 // ─── POST /admin/users/:userId/block ─────────────────────────────────────────
-app.post('/admin/users/:userId/block', adminAuth, async (req, res) => {
-  const { userId }  = req.params;
-  const { reason }  = req.body;
+app.post('/admin/users/:userId/block', adminAuth, async (req: any, res) => {
+  const { userId } = req.params;
+  const { reason } = req.body;
+  const ctx = { fn: 'blockUser', tag: 'adminService_blockUser', userId: req.admin?.username, role: 'admin', action: 'BLOCK_USER' };
+  log.enter(ctx, { targetUserId: userId, reason });
 
-  const { data } = await axios.patch(
-    `${USER_SERVICE_URL}/internal/users/${userId}/block`,
-    { isBlocked: true, blockedReason: reason },
-  );
-  res.json(data);
+  try {
+    const { data } = await axios.patch(
+      `${USER_SERVICE_URL}/internal/users/${userId}/block`,
+      { isBlocked: true, blockedReason: reason },
+    );
+    log.info(ctx, 'User blocked', { targetUserId: userId, reason });
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_blockUser_failed' }, 'Failed to block user', err);
+    res.status(500).json(failure('Internal server error'));
+  }
 });
 
 // ─── GET /admin/bookings ──────────────────────────────────────────────────────
-app.get('/admin/bookings', adminAuth, async (req, res) => {
-  const { data } = await axios.get(`${BOOKING_SERVICE_URL}/internal/bookings`, { params: req.query });
-  res.json(data);
+app.get('/admin/bookings', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'getBookings', tag: 'adminService_getBookings', userId: req.admin?.username, role: 'admin', action: 'GET_ALL_BOOKINGS' };
+  log.enter(ctx, { query: req.query });
+
+  try {
+    const { data } = await axios.get(`${BOOKING_SERVICE_URL}/internal/bookings`, { params: req.query });
+    log.info(ctx, 'All bookings fetched from booking-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_getBookings_failed' }, 'Failed to fetch bookings', err);
+    res.status(500).json(failure('Internal server error'));
+  }
 });
 
 // ─── GET /admin/bookings/disputed ────────────────────────────────────────────
-app.get('/admin/bookings/disputed', adminAuth, async (req, res) => {
-  const { data } = await axios.get(`${BOOKING_SERVICE_URL}/internal/bookings/disputed`);
-  res.json(data);
+app.get('/admin/bookings/disputed', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'getDisputedBookings', tag: 'adminService_getDisputedBookings', userId: req.admin?.username, role: 'admin', action: 'GET_DISPUTED_BOOKINGS' };
+  log.enter(ctx);
+
+  try {
+    const { data } = await axios.get(`${BOOKING_SERVICE_URL}/internal/bookings/disputed`);
+    log.info(ctx, 'Disputed bookings fetched from booking-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_getDisputedBookings_failed' }, 'Failed to fetch disputed bookings', err);
+    res.status(500).json(failure('Internal server error'));
+  }
 });
 
 // ─── POST /admin/bookings/:bookingId/resolve-dispute ─────────────────────────
-app.post('/admin/bookings/:bookingId/resolve-dispute', adminAuth, async (req, res) => {
-  const { data } = await axios.post(
-    `${BOOKING_SERVICE_URL}/internal/bookings/${req.params.bookingId}/resolve`,
-    req.body,
-  );
-  res.json(data);
+app.post('/admin/bookings/:bookingId/resolve-dispute', adminAuth, async (req: any, res) => {
+  const { bookingId } = req.params;
+  const ctx = { fn: 'resolveDispute', tag: 'adminService_resolveDispute', userId: req.admin?.username, role: 'admin', action: 'RESOLVE_DISPUTE' };
+  log.enter(ctx, { bookingId, resolution: req.body.resolution });
+
+  try {
+    const { data } = await axios.post(
+      `${BOOKING_SERVICE_URL}/internal/bookings/${bookingId}/resolve`,
+      req.body,
+    );
+    log.info(ctx, 'Dispute resolved', { bookingId });
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_resolveDispute_failed' }, 'Failed to resolve dispute', err);
+    res.status(500).json(failure('Internal server error'));
+  }
 });
 
 // ─── POST /admin/broadcast-notification ──────────────────────────────────────
-app.post('/admin/broadcast-notification', adminAuth, async (req, res) => {
+app.post('/admin/broadcast-notification', adminAuth, async (req: any, res) => {
   const { title, body, targetRole } = req.body;
-  // Would call notification service
-  res.json(success({ sent: true, title, body, targetRole }, 'Broadcast queued'));
+  const ctx = { fn: 'broadcastNotification', tag: 'adminService_broadcastNotification', userId: req.admin?.username, role: 'admin', action: 'BROADCAST_NOTIFICATION' };
+  log.enter(ctx, { title, targetRole });
+
+  try {
+    log.info(ctx, 'Broadcast notification queued', { title, targetRole });
+    res.json(success({ sent: true, title, body, targetRole }, 'Broadcast queued'));
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_broadcastNotification_failed' }, 'Failed to broadcast notification', err);
+    res.status(500).json(failure('Internal server error'));
+  }
 });
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'admin-service' }));
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('[Admin Service Error]', err);
+  log.error({ fn: 'globalErrorHandler', action: 'UNHANDLED_ERROR' }, 'Unhandled server error', err);
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
 const start = async () => {
-  app.listen(PORT, () => console.log(`[Admin Service] Running on port ${PORT}`));
+  app.listen(PORT, () => log.info({ fn: 'start', action: 'STARTUP' }, 'Admin service started', { port: PORT }));
 };
 
-start().catch(err => { console.error(err); process.exit(1); });
+start().catch(err => {
+  log.error({ fn: 'start', action: 'STARTUP' }, 'Admin service failed to start', err);
+  process.exit(1);
+});

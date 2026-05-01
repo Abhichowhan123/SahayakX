@@ -10,6 +10,7 @@ import { COLORS }                       from '../constants';
 // Auth screens
 import PhoneScreen          from '../screens/auth/PhoneScreen';
 import OtpScreen            from '../screens/auth/OtpScreen';
+import ProfileSetupScreen   from '../screens/auth/ProfileSetupScreen';
 // Customer screens
 import HomeScreen           from '../screens/home/HomeScreen';
 import WorkerListScreen     from '../screens/workers/WorkerListScreen';
@@ -32,13 +33,14 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Phone: undefined;
-  Otp:   { phone: string; role: 'customer' | 'worker' };
+  Otp:   { phone: string; role: 'customer' | 'worker'; mode: 'login' | 'register'; devOtp?: string };
 };
 
 export type TabParamList = {
-  Home:     undefined;
-  Bookings: undefined;
-  Profile:  undefined;
+  Home:      undefined;
+  Bookings:  undefined;
+  Profile:   undefined;
+  Dashboard: undefined;
 };
 
 const Stack  = createNativeStackNavigator<RootStackParamList>();
@@ -99,13 +101,22 @@ const WorkerTabs = () => (
 );
 
 export default function AppNavigator() {
-  const { user, isLoading, isWorkerMode } = useAuth();
+  const { user, isLoading, isWorkerMode, needsProfile } = useAuth();
 
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
+    );
+  }
+
+  // New user: authenticated but hasn't set up profile yet
+  if (user && needsProfile) {
+    return (
+      <NavigationContainer>
+        <ProfileSetupScreen />
+      </NavigationContainer>
     );
   }
 

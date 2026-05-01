@@ -8,6 +8,7 @@ import dotenv    from 'dotenv';
 import bookingRoutes  from './routes/booking.routes';
 import internalRoutes from './routes/internal.routes';
 import { connectRabbitMQ } from '@serveease/shared/events';
+import { attachMongooseLogger } from '@serveease/shared/utils';
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 const start = async () => {
+  attachMongooseLogger(mongoose.connection, 'booking-service');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/serveease_bookings');
   console.log('[Booking Service] MongoDB connected');
 

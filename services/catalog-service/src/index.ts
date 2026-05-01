@@ -4,13 +4,15 @@ import helmet         from 'helmet';
 import { createClient } from 'redis';
 import dotenv         from 'dotenv';
 import { ServiceCategory, SERVICE_SUBTYPES, PLATFORM_CONFIG } from '@serveease/shared/types';
-import { success } from '@serveease/shared/utils';
+import { success, createLogger } from '@serveease/shared/utils';
 
 dotenv.config();
 
 const app    = express();
 const PORT   = parseInt(process.env.PORT || '3004', 10);
 let   redis: ReturnType<typeof createClient>;
+
+const log = createLogger('catalog-service');
 
 app.use(helmet());
 app.use(cors());
@@ -20,9 +22,9 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'catalog-ser
 
 // ─── GET /catalog/categories ─────────────────────────────────────────────────
 app.get('/catalog/categories', async (_req, res) => {
+  const ctx       = { fn: 'getCategories', tag: 'catalogService_getCategories', action: 'GET_CATEGORIES' };
   const CACHE_KEY = 'catalog:categories';
-  const cached    = await redis.get(CACHE_KEY);
-  if (cached) { res.json(JSON.parse(cached)); return; }
+  log.enter(ctx);
 
   const categories = Object.values(ServiceCategory).map(cat => ({
     id:       cat,
@@ -32,18 +34,46 @@ app.get('/catalog/categories', async (_req, res) => {
     description: getCategoryDescription(cat),
   }));
 
-  const response = success(categories, 'Categories fetched');
-  await redis.setEx(CACHE_KEY, 86400, JSON.stringify(response)); // cache 24h
-  res.json(response);
+  try {
+    const cached = await redis.get(CACHE_KEY);
+    if (cached) {
+      log.info(ctx, 'Categories served from Redis cache');
+      res.json(JSON.parse(cached));
+      return;
+    }
+
+    const response = success(categories, 'Categories fetched');
+    try {
+      await redis.setEx(CACHE_KEY, 86400, JSON.stringify(response)); // cache 24h
+      log.db(ctx, 'Redis.setEx (categories cached 24h)', { count: categories.length });
+    } catch (cacheErr) {
+      log.warn({ ...ctx, tag: 'catalogService_getCategories_cacheFailed' }, 'Redis cache write failed, serving uncached', { error: cacheErr instanceof Error ? cacheErr.message : String(cacheErr) });
+    }
+
+    log.info(ctx, 'Categories fetched from memory', { count: categories.length });
+    res.json(response);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'catalogService_getCategories_failed' }, 'getCategories failed', err);
+    const response = success(categories, 'Categories fetched');
+    log.warn(ctx, 'Serving categories without Redis (fallback)', { count: categories.length });
+    res.json(response);
+  }
 });
 
 // ─── GET /catalog/categories/:category ───────────────────────────────────────
 app.get('/catalog/categories/:category', async (req, res) => {
   const { category } = req.params;
+  const ctx          = { fn: 'getCategoryDetail', action: 'GET_CATEGORY_DETAIL' };
+  log.enter(ctx, { category });
+
   const subTypes = SERVICE_SUBTYPES[category as ServiceCategory];
+  if (!subTypes) {
+    log.warn(ctx, 'Category not found', { category });
+    res.status(404).json({ success: false, message: 'Category not found' });
+    return;
+  }
 
-  if (!subTypes) { res.status(404).json({ success: false, message: 'Category not found' }); return; }
-
+  log.info(ctx, 'Category detail fetched', { category, subTypeCount: subTypes.length });
   res.json(success({
     id:       category,
     subTypes,
@@ -55,6 +85,9 @@ app.get('/catalog/categories/:category', async (req, res) => {
 
 // ─── GET /catalog/pricing ─────────────────────────────────────────────────────
 app.get('/catalog/pricing', (_req, res) => {
+  const ctx = { fn: 'getPricing', action: 'GET_PRICING' };
+  log.enter(ctx);
+
   const pricing: Record<string, { minHourly: number; maxHourly: number; minDaily: number; maxDaily: number }> = {
     house_maid:   { minHourly: 80,  maxHourly: 200,  minDaily: 400,  maxDaily: 1000 },
     garden_work:  { minHourly: 100, maxHourly: 250,  minDaily: 500,  maxDaily: 1500 },
@@ -67,11 +100,16 @@ app.get('/catalog/pricing', (_req, res) => {
     driver:       { minHourly: 100, maxHourly: 300,  minDaily: 500,  maxDaily: 1500 },
     babysitter:   { minHourly: 100, maxHourly: 400,  minDaily: 400,  maxDaily: 2000 },
   };
+
+  log.info(ctx, 'Pricing guidelines fetched', { categoryCount: Object.keys(pricing).length });
   res.json(success(pricing, 'Pricing guidelines fetched'));
 });
 
 // ─── GET /catalog/config ──────────────────────────────────────────────────────
 app.get('/catalog/config', (_req, res) => {
+  const ctx = { fn: 'getConfig', action: 'GET_PLATFORM_CONFIG' };
+  log.enter(ctx);
+  log.info(ctx, 'Platform config fetched');
   res.json(success(PLATFORM_CONFIG, 'Platform config'));
 });
 
@@ -116,8 +154,11 @@ function getPricingGuideline(cat: ServiceCategory): string {
 const start = async () => {
   redis = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
   await redis.connect();
-  console.log('[Catalog Service] Redis connected');
-  app.listen(PORT, () => console.log(`[Catalog Service] Running on port ${PORT}`));
+  log.info({ fn: 'start', action: 'STARTUP' }, 'Redis connected');
+  app.listen(PORT, () => log.info({ fn: 'start', action: 'STARTUP' }, `Catalog service started`, { port: PORT }));
 };
 
-start().catch(err => { console.error(err); process.exit(1); });
+start().catch(err => {
+  log.error({ fn: 'start', action: 'STARTUP' }, 'Catalog service failed to start', err);
+  process.exit(1);
+});

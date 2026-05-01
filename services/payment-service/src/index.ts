@@ -9,6 +9,7 @@ import {
   refundPayment, chargePenalty, getHistory, walletTopup,
 } from './controllers/payment.controller';
 import { connectRabbitMQ, consumeEvent, QueueName } from '@serveease/shared/events';
+import { attachMongooseLogger } from '@serveease/shared/utils';
 import { IPenaltyEvent, IPaymentEvent, PaymentStatus } from '@serveease/shared/types';
 import axios from 'axios';
 
@@ -43,6 +44,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 const WORKER_SERVICE_URL = process.env.WORKER_SERVICE_URL || 'http://worker-service:3003';
 
 const start = async () => {
+  attachMongooseLogger(mongoose.connection, 'payment-service');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/serveease_payments');
   console.log('[Payment Service] MongoDB connected');
 

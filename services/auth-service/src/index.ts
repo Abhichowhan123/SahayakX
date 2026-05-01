@@ -6,6 +6,7 @@ import { createClient } from 'redis';
 import { config }      from './config';
 import authRoutes      from './routes/auth.routes';
 import { setRedisClient } from './controllers/auth.controller';
+import { attachMongooseLogger } from '@serveease/shared/utils';
 
 const app = express();
 
@@ -27,7 +28,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 const start = async () => {
-  // MongoDB
+  attachMongooseLogger(mongoose.connection, 'auth-service');
   await mongoose.connect(config.mongoUri);
   console.log('[Auth Service] MongoDB connected');
 

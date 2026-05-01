@@ -5,35 +5,47 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
-import { userApi } from '../../api';
+import { userApi, workerApi } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'EditProfile'> };
 
 export default function EditProfileScreen({ navigation }: Props) {
+  const { user } = useAuth();
+  const isWorker = user?.role === 'worker';
+
   const [fullName, setFullName] = useState('');
   const [email,    setEmail]    = useState('');
+  const [bio,      setBio]      = useState('');
   const [loading,  setLoading]  = useState(false);
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState('');
 
   useEffect(() => {
     setLoading(true);
-    userApi.getProfile()
+    const fetch = isWorker ? workerApi.getMyProfile() : userApi.getProfile();
+    fetch
       .then(res => {
-        setFullName(res.data.data?.fullName || '');
-        setEmail(res.data.data?.email || '');
+        const data = res.data.data;
+        setFullName(data?.fullName || '');
+        setEmail(data?.email || '');
+        setBio(data?.bio || '');
       })
       .catch(() => setError('Failed to load profile'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isWorker]);
 
   const handleSave = async () => {
     setError('');
     if (!fullName.trim()) { setError('Name is required'); return; }
     setSaving(true);
     try {
-      await userApi.updateProfile({ fullName: fullName.trim(), email: email.trim() });
+      if (isWorker) {
+        await workerApi.updateMyProfile({ fullName: fullName.trim(), bio: bio.trim() });
+      } else {
+        await userApi.updateProfile({ fullName: fullName.trim(), email: email.trim() });
+      }
       if (Platform.OS === 'web') {
         window.alert('Profile updated successfully');
       } else {
@@ -69,16 +81,35 @@ export default function EditProfileScreen({ navigation }: Props) {
           placeholderTextColor={COLORS.textMuted}
         />
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Enter your email"
-          placeholderTextColor={COLORS.textMuted}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
+        {!isWorker && (
+          <>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Enter your email"
+              placeholderTextColor={COLORS.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </>
+        )}
+
+        {isWorker && (
+          <>
+            <Text style={styles.label}>Bio</Text>
+            <TextInput
+              style={[styles.input, styles.multiline]}
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Tell customers about yourself"
+              placeholderTextColor={COLORS.textMuted}
+              multiline
+              numberOfLines={3}
+            />
+          </>
+        )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -103,6 +134,7 @@ const styles = StyleSheet.create({
   heading:       { fontSize: FONTS.sizes.xl, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.xl },
   label:         { fontSize: FONTS.sizes.sm, fontWeight: '600', color: COLORS.textSecondary, marginBottom: SPACING.xs },
   input:         { backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, fontSize: FONTS.sizes.base, color: COLORS.textPrimary, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
+  multiline:     { height: 90, textAlignVertical: 'top' },
   error:         { color: COLORS.error, fontSize: FONTS.sizes.sm, marginBottom: SPACING.md, textAlign: 'center' },
   saveBtn:       { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center', marginBottom: SPACING.sm },
   saveBtnText:   { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.white },

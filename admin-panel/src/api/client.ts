@@ -1,9 +1,10 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { adminLogger } from '../utils/logger';
 
 export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:80';
-console.log('[API] BASE_URL:', BASE_URL);
+adminLogger.info({ fn: 'init', action: 'STARTUP' }, 'Admin API client initializing', { baseUrl: BASE_URL });
 
 const getToken = () =>
   Platform.OS === 'web'
@@ -16,11 +17,38 @@ const api: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// ─── Request interceptor: inject JWT + log outgoing request ──────────────────
 api.interceptors.request.use(async (config) => {
   const token = await getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  adminLogger.apiReq(
+    config.method?.toUpperCase() || 'GET',
+    config.url || '',
+  );
   return config;
 });
+
+// ─── Response interceptor: log response + errors ─────────────────────────────
+api.interceptors.response.use(
+  (res) => {
+    adminLogger.apiRes(
+      res.config.method?.toUpperCase() || 'GET',
+      res.config.url || '',
+      res.status,
+    );
+    return res;
+  },
+  (error: AxiosError) => {
+    adminLogger.apiErr(
+      error.config?.method?.toUpperCase() || 'GET',
+      error.config?.url || '',
+      error.response?.status,
+      error,
+    );
+    return Promise.reject(error);
+  },
+);
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {

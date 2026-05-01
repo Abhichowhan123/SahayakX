@@ -10,6 +10,10 @@ export interface IJwtPayload {
 export const signToken = (payload: IJwtPayload): string =>
   jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiresIn } as jwt.SignOptions);
 
-export const verifyToken = (token: string): IJwtPayload => {
-  return jwt.verify(token, config.jwtSecret) as IJwtPayload;
+export const verifyToken = (token: string): IJwtPayload | null => {
+  try {
+    return jwt.verify(token, config.jwtSecret) as IJwtPayload;
+  } catch {
+    return null;
+  }
 };

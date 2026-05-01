@@ -23,6 +23,10 @@ interface Worker {
   experience:      number;
   serviceCategory: string;
   serviceSubTypes: string[];
+  skills:          string[];
+  languages:       string[];
+  serviceArea:     string;
+  availability:    { days: string[]; shift: string };
   ratings:         { average: number; totalReviews: number };
   pricing:         { hourlyRate: number; currency: string; isNegotiable: boolean; suggestedFares?: number[] };
   isOnline:        boolean;
@@ -105,11 +109,11 @@ export default function WorkerListScreen({ navigation, route }: Props) {
         {/* Info */}
         <View style={styles.info}>
           <Text style={styles.name}>{item.fullName || 'Worker'}</Text>
-          <Text style={styles.exp}>{item.experience} yr exp · {item.serviceSubTypes.join(', ') || categoryLabel}</Text>
+          <Text style={styles.exp}>{item.experience} yr exp</Text>
           <View style={styles.ratingRow}>
             <Text style={styles.star}>★</Text>
             <Text style={styles.rating}>{item.ratings.average.toFixed(1)}</Text>
-            <Text style={styles.ratingCount}>({item.ratings.totalReviews})</Text>
+            <Text style={styles.ratingCount}>({item.ratings.totalReviews} reviews)</Text>
           </View>
         </View>
 
@@ -119,6 +123,31 @@ export default function WorkerListScreen({ navigation, route }: Props) {
           <Text style={styles.priceUnit}>/hr</Text>
           {item.pricing.isNegotiable && <Text style={styles.negotiable}>Negotiable</Text>}
         </View>
+      </View>
+
+      {/* Sub-type chips */}
+      {item.serviceSubTypes?.length > 0 && (
+        <View style={styles.chipsRow}>
+          {item.serviceSubTypes.slice(0, 4).map(st => (
+            <View key={st} style={styles.chip}><Text style={styles.chipText}>{st}</Text></View>
+          ))}
+          {item.serviceSubTypes.length > 4 && (
+            <View style={styles.chip}><Text style={styles.chipText}>+{item.serviceSubTypes.length - 4}</Text></View>
+          )}
+        </View>
+      )}
+
+      {/* Meta row: location + availability */}
+      <View style={styles.metaRow}>
+        {item.serviceArea ? (
+          <Text style={styles.metaTag} numberOfLines={1}>📍 {item.serviceArea}</Text>
+        ) : null}
+        {item.availability?.shift ? (
+          <Text style={styles.metaTag}>🕐 {item.availability.shift}</Text>
+        ) : null}
+        {item.languages?.length > 0 && (
+          <Text style={styles.metaTag}>🗣 {item.languages.slice(0, 2).join(', ')}</Text>
+        )}
       </View>
 
       <TouchableOpacity style={styles.bookBtn} onPress={() => handleBook(item)}>
@@ -198,6 +227,11 @@ const styles = StyleSheet.create({
   price:            { fontSize: FONTS.sizes.lg, fontWeight: '800', color: COLORS.primary },
   priceUnit:        { fontSize: FONTS.sizes.xs, color: COLORS.textSecondary },
   negotiable:       { fontSize: FONTS.sizes.xs, color: COLORS.success, fontWeight: '600', marginTop: 2 },
+  chipsRow:         { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: SPACING.sm },
+  chip:             { backgroundColor: COLORS.primary + '15', paddingHorizontal: SPACING.sm, paddingVertical: 3, borderRadius: BORDER_RADIUS.full },
+  chipText:         { fontSize: FONTS.sizes.xs, color: COLORS.primary, fontWeight: '600' },
+  metaRow:          { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: SPACING.sm },
+  metaTag:          { fontSize: FONTS.sizes.xs, color: COLORS.textSecondary, backgroundColor: COLORS.inputBg, paddingHorizontal: SPACING.sm, paddingVertical: 3, borderRadius: BORDER_RADIUS.full, overflow: 'hidden' },
   bookBtn:          { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
   bookBtnText:      { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.white },
   empty:            { alignItems: 'center', paddingTop: 80 },
