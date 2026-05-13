@@ -5,17 +5,26 @@ import mongoose, { Schema, Document } from 'mongoose';
 import axios     from 'axios';
 import dotenv    from 'dotenv';
 import { authenticate, requireRole } from './middleware/auth.middleware';
-import { success, failure, createLogger, attachMongooseLogger }  from '@serveease/shared/utils';
+import {
+  success,
+  failure,
+  attachMongooseLogger,
+  attachRequestIdToAxios,
+  createLogger,
+  createRequestContextMiddleware,
+}  from '@serveease/shared/utils';
 
 dotenv.config();
 
 const app  = express();
 const PORT = parseInt(process.env.PORT || '3008', 10);
 const log  = createLogger('review-service');
+attachRequestIdToAxios(axios);
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(createRequestContextMiddleware('review-service'));
 
 // ─── Review Model ─────────────────────────────────────────────────────────────
 interface IReviewDocument extends Document {

@@ -18,7 +18,7 @@ export default function ProfileScreen({ navigation }: any) {
   const fetchProfile = useCallback(async () => {
     try {
       if (isWorkerMode) {
-        const p = await workerApi.getWorkerById('me');
+        const p = await workerApi.getMyProfile();
         setProfile(p.data.data);
         setIsOnline(p.data.data.isOnline);
       } else {

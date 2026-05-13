@@ -36,6 +36,8 @@ export default function PhoneScreen({ navigation }: Props) {
     setError('');
     setNotRegistered(false);
     const { digits, cleaned } = getCleanedPhone();
+    console.log("getCleanedPhone", digits);
+    
     if (digits.length < 10) {
       showError('Please enter a valid 10-digit mobile number');
       return;

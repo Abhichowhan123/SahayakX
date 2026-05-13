@@ -1,12 +1,67 @@
+import { AsyncLocalStorage } from 'async_hooks';
+import { randomUUID } from 'crypto';
+
 export interface LogCtx {
   fn: string;
   tag?: string;
   userId?: string;
   role?: string;
   action?: string;
+  requestId?: string;
 }
 
 type Level = 'info' | 'warn' | 'error' | 'debug';
+
+interface RequestLogContext {
+  requestId: string;
+  method?: string;
+  path?: string;
+}
+
+const requestContext = new AsyncLocalStorage<RequestLogContext>();
+
+export const getRequestLogContext = (): RequestLogContext | undefined =>
+  requestContext.getStore();
+
+export const createRequestContextMiddleware = (service: string) =>
+  (req: any, res: any, next: () => void): void => {
+    const incoming = req.headers?.['x-request-id'];
+    const requestId =
+      (Array.isArray(incoming) ? incoming[0] : incoming) ||
+      req.headers?.['x-correlation-id'] ||
+      randomUUID();
+
+    if (typeof res.setHeader === 'function') {
+      res.setHeader('X-Request-Id', requestId);
+    }
+
+    requestContext.run({
+      requestId,
+      method: req.method,
+      path: req.originalUrl || req.url,
+    }, () => {
+      emit(service, 'info', {
+        fn: 'request',
+        tag: `${service}_request_start`,
+        action: 'REQUEST_START',
+        requestId,
+      }, `${req.method} ${req.originalUrl || req.url}`);
+      next();
+    });
+  };
+
+export const attachRequestIdToAxios = (axiosLike: any): void => {
+  if (!axiosLike?.interceptors?.request?.use) return;
+
+  axiosLike.interceptors.request.use((config: any) => {
+    const activeRequest = getRequestLogContext();
+    if (!activeRequest?.requestId) return config;
+
+    config.headers = config.headers || {};
+    config.headers['X-Request-Id'] = activeRequest.requestId;
+    return config;
+  });
+};
 
 function emit(
   service: string,
@@ -15,10 +70,15 @@ function emit(
   msg: string,
   extra?: Record<string, unknown>,
 ): void {
+  const activeRequest = getRequestLogContext();
   const entry: Record<string, unknown> = {
     ts:      new Date().toISOString(),
+    eventId: randomUUID(),
     level,
     service,
+    ...((ctx.requestId || activeRequest?.requestId) && { requestId: ctx.requestId || activeRequest?.requestId }),
+    ...(activeRequest?.method && { method: activeRequest.method }),
+    ...(activeRequest?.path && { path: activeRequest.path }),
     fn:      ctx.fn,
     ...(ctx.tag    && { tag:    ctx.tag    }),
     ...(ctx.userId && { userId: ctx.userId }),

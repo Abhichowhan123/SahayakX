@@ -5,10 +5,16 @@ import mongoose  from 'mongoose';
 import http      from 'http';
 import { Server } from 'socket.io';
 import dotenv    from 'dotenv';
+import axios     from 'axios';
 import bookingRoutes  from './routes/booking.routes';
 import internalRoutes from './routes/internal.routes';
 import { connectRabbitMQ } from '@serveease/shared/events';
-import { attachMongooseLogger } from '@serveease/shared/utils';
+import {
+  attachMongooseLogger,
+  attachRequestIdToAxios,
+  createLogger,
+  createRequestContextMiddleware,
+} from '@serveease/shared/utils';
 
 dotenv.config();
 
@@ -16,10 +22,13 @@ const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server, { cors: { origin: '*' } });
 const PORT   = parseInt(process.env.PORT || '3005', 10);
+const log    = createLogger('booking-service');
+attachRequestIdToAxios(axios);
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(createRequestContextMiddleware('booking-service'));
 
 // Attach io to requests for real-time updates
 app.use((req: any, _res, next) => { req.io = io; next(); });
@@ -30,7 +39,7 @@ app.use('/internal/bookings', internalRoutes);
 
 // ─── Socket.io — Real-time tracking ──────────────────────────────────────────
 io.on('connection', (socket) => {
-  console.log('[Socket] Client connected:', socket.id);
+  log.info({ fn: 'socketConnection', action: 'SOCKET_CONNECT' }, 'Socket client connected', { socketId: socket.id });
 
   socket.on('join_booking', (bookingId: string) => {
     socket.join(`booking_${bookingId}`);
@@ -41,23 +50,26 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('[Socket] Client disconnected:', socket.id);
+    log.info({ fn: 'socketConnection', action: 'SOCKET_DISCONNECT' }, 'Socket client disconnected', { socketId: socket.id });
   });
 });
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('[Booking Service Error]', err);
+  log.error({ fn: 'globalErrorHandler', action: 'UNHANDLED_ERROR' }, 'Unhandled server error', err);
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
 const start = async () => {
   attachMongooseLogger(mongoose.connection, 'booking-service');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/serveease_bookings');
-  console.log('[Booking Service] MongoDB connected');
+  log.info({ fn: 'start', action: 'STARTUP' }, 'MongoDB connected');
 
   await connectRabbitMQ(process.env.RABBITMQ_URL || 'amqp://localhost:5672');
 
-  server.listen(PORT, () => console.log(`[Booking Service] Running on port ${PORT} (HTTP + WebSocket)`));
+  server.listen(PORT, () => log.info({ fn: 'start', action: 'STARTUP' }, 'Booking service started', { port: PORT, websocket: true }));
 };
 
-start().catch(err => { console.error(err); process.exit(1); });
+start().catch(err => {
+  log.error({ fn: 'start', action: 'STARTUP' }, 'Booking service failed to start', err);
+  process.exit(1);
+});

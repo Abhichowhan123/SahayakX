@@ -1,6 +1,11 @@
 import crypto from 'crypto';
 
-export { createLogger } from './logger';
+export {
+  createLogger,
+  createRequestContextMiddleware,
+  getRequestLogContext,
+  attachRequestIdToAxios,
+} from './logger';
 export type { ServiceLogger, LogCtx } from './logger';
 
 // ─── OTP ─────────────────────────────────────────────────────────────────────
@@ -80,7 +85,7 @@ export const getPaginationParams = (query: Record<string, string | undefined>) =
 interface EventEmitterLike { on(event: string, listener: (...args: any[]) => void): any; }
 
 const connLog = (level: string, service: string, event: string, extra?: object) =>
-  console.log(JSON.stringify({ ts: new Date().toISOString(), level, service, event, ...extra }));
+  console.log(JSON.stringify({ ts: new Date().toISOString(), eventId: crypto.randomUUID(), level, service, event, ...extra }));
 
 export const attachMongooseLogger = (conn: EventEmitterLike, service: string): void => {
   conn.on('connecting',    () => connLog('info',  service, 'MONGO_CONNECTING'));

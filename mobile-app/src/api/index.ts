@@ -38,6 +38,32 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// ─── Refresh mutex — prevents concurrent token refresh races ─────────────────
+let isRefreshing = false;
+let refreshQueue: Array<(token: string | null) => void> = [];
+
+// ─── Session-expired callback for native platforms ───────────────────────────
+let onSessionExpired: (() => void) | null = null;
+export const setSessionExpiredCallback = (cb: (() => void) | null) => {
+  onSessionExpired = cb;
+};
+
+const drainRefreshQueue = (newToken: string | null) => {
+  refreshQueue.forEach((cb) => cb(newToken));
+  refreshQueue = [];
+};
+
+const handleSessionExpired = async () => {
+  await removeStoredToken();
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('user_phone');
+    window.dispatchEvent(new CustomEvent('auth:session-expired'));
+  } else {
+    onSessionExpired?.();
+  }
+};
+
 // ─── Response interceptor: auto-refresh on 401 + log response/error ──────────
 api.interceptors.response.use(
   (res) => {
@@ -54,26 +80,74 @@ api.interceptors.response.use(
     const status = error.response?.status;
 
     if (status === 401) {
-      const token = await getStoredToken();
-      if (token) {
+      const config = error.config as (typeof error.config & { _retry?: boolean });
+
+      // Already retried once — stop here to avoid infinite refresh loops
+      if (config?._retry) {
+        appLogger.warn({ fn: 'tokenRefresh', action: 'TOKEN_REFRESH' }, 'Request still 401 after retry — forcing logout');
+        await handleSessionExpired();
+        appLogger.apiErr(method, url, status, error);
+        return Promise.reject(error);
+      }
+
+      const requestToken = (config?.headers?.Authorization as string | undefined)
+        ?.replace('Bearer ', '') || null;
+      const storedToken = await getStoredToken();
+
+      if (storedToken) {
+        // Request was sent with a stale token — retry once with the current stored token
+        if (requestToken && requestToken !== storedToken) {
+          appLogger.info(
+            { fn: 'tokenRetry', action: 'TOKEN_RETRY' },
+            'Request used stale token, retrying with current token',
+          );
+          if (config) {
+            config._retry = true;
+            config.headers.Authorization = `Bearer ${storedToken}`;
+            return api.request(config);
+          }
+        }
+
+        // Request used the current token — it truly expired, needs refresh
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            refreshQueue.push((newToken) => {
+              if (newToken && config) {
+                config._retry = true;
+                config.headers.Authorization = `Bearer ${newToken}`;
+                resolve(api.request(config));
+              } else {
+                reject(error);
+              }
+            });
+          });
+        }
+
+        isRefreshing = true;
         try {
-          const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { token });
-          await setStoredToken(data.data.token);
+          const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { token: storedToken });
+          const newToken = data.data.token;
+          await setStoredToken(newToken);
+          isRefreshing = false;
+          drainRefreshQueue(newToken);
           appLogger.info(
             { fn: 'tokenRefresh', action: 'TOKEN_REFRESH' },
             'Token auto-refreshed on 401',
           );
-          if (error.config) {
-            error.config.headers.Authorization = `Bearer ${data.data.token}`;
-            return api.request(error.config);
+          if (config) {
+            config._retry = true;
+            config.headers.Authorization = `Bearer ${newToken}`;
+            return api.request(config);
           }
         } catch (refreshErr) {
+          isRefreshing = false;
+          drainRefreshQueue(null);
           appLogger.error(
             { fn: 'tokenRefresh', action: 'TOKEN_REFRESH' },
             'Token refresh failed — logging out',
             refreshErr,
           );
-          await removeStoredToken();
+          await handleSessionExpired();
         }
       }
     }

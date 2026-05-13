@@ -184,10 +184,10 @@ The admin panel is a separate Expo app at `admin-panel/`. It lets you test every
 
 ```bash
 cd /Users/abhishekchowhan/Desktop/MyProject/serveease/admin-panel
-npm start
+npx expo start --web --port 8082
 ```
 
-- Press **`w`** → opens in web browser at `http://localhost:8081`
+- Opens in web browser at `http://localhost:8082`
 - Press **`a`** → opens on Android emulator (AVD must be running)
 - Scan QR with **Expo Go** app → opens on real Android phone
 
@@ -258,6 +258,26 @@ EXPO_PUBLIC_API_URL=http://192.168.1.XX:80
 
 Fill in these `.env` values only when you want to test that specific feature.
 Leave blank to skip — the rest of the app still works.
+
+---
+
+## LOGGING WHILE TESTING
+
+Use separate terminals so one noisy service does not hide the error you need:
+
+```bash
+npm run logs:errors       # errors across backend services
+npm run logs:auth         # auth-service only
+npm run logs:booking      # booking-service only
+npm run logs:worker       # worker-service only
+npm run logs:admin        # admin-service only
+```
+
+Each formatted log line has `requestId` and `eventId`. Search one request across services:
+
+```bash
+npm run logs:backend -- --grep <requestId>
+```
 
 | Feature | Service | Keys Needed |
 |---|---|---|

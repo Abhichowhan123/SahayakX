@@ -78,17 +78,29 @@ export const registerWorker = async (req: Request, res: Response): Promise<void>
 // ─── PUT /workers/me ─────────────────────────────────────────────────────────
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   const phone = (req as any).user.phone as string;
-  const { fullName, bio, experience, skills, serviceSubTypes, pricing, fcmToken } = req.body;
+  const { fullName, bio, experience, skills, serviceSubTypes, serviceCategory, pricing, languages, availability, serviceArea, fcmToken } = req.body;
   const ctx = { fn: 'updateProfile', tag: 'workerService_updateProfile', userId: phone, role: 'worker', action: 'UPDATE_WORKER_PROFILE' };
   log.enter(ctx);
 
   try {
+    const update: Record<string, unknown> = { fullName, bio, experience, skills, serviceSubTypes, pricing, fcmToken };
+    if (serviceCategory !== undefined) update.serviceCategory = serviceCategory;
+    if (languages      !== undefined) update.languages        = languages;
+    if (availability   !== undefined) update.availability     = availability;
+    if (serviceArea    !== undefined) update.serviceArea      = serviceArea;
+
     const worker = await WorkerModel.findOneAndUpdate(
       { phone },
-      { fullName, bio, experience, skills, serviceSubTypes, pricing, fcmToken },
+      update,
       { new: true },
     );
     log.db(ctx, 'WorkerModel.findOneAndUpdate', { found: !!worker });
+
+    if (!worker) {
+      log.warn(ctx, 'Worker profile not found for update — registration incomplete');
+      res.status(404).json(failure('Worker profile not found. Please complete registration first.'));
+      return;
+    }
 
     log.info(ctx, 'Worker profile updated successfully');
     res.json(success(worker, 'Profile updated'));

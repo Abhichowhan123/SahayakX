@@ -4,7 +4,7 @@ import helmet         from 'helmet';
 import { createClient } from 'redis';
 import dotenv         from 'dotenv';
 import { ServiceCategory, SERVICE_SUBTYPES, PLATFORM_CONFIG } from '@serveease/shared/types';
-import { success, createLogger } from '@serveease/shared/utils';
+import { success, createLogger, createRequestContextMiddleware } from '@serveease/shared/utils';
 
 dotenv.config();
 
@@ -17,6 +17,7 @@ const log = createLogger('catalog-service');
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(createRequestContextMiddleware('catalog-service'));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'catalog-service' }));
 

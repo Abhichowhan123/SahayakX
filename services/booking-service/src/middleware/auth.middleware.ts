@@ -8,7 +8,11 @@ const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:30
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) { res.status(401).json(failure('Authentication required')); return; }
+  if (!token) {
+    log.warn({ fn: 'authenticate', tag: 'bookingService_authenticate_noToken', action: 'AUTH_VALIDATE' }, 'No token in request — all headers logged', { headers: JSON.stringify(req.headers) });
+    res.status(401).json(failure('Authentication required'));
+    return;
+  }
   try {
     const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/validate`, {
       headers: { Authorization: `Bearer ${token}` },

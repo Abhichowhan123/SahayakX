@@ -250,8 +250,17 @@ export default function ProfileSetupScreen() {
     setLocationLoading(true);
     setError('');
     try {
+      if (
+        Platform.OS === 'web' &&
+        typeof window !== 'undefined' &&
+        window.location.protocol !== 'https:' &&
+        window.location.hostname !== 'localhost'
+      ) {
+        setError('Location detection needs HTTPS. Open the app at http://localhost:8081 or type your area manually.');
+        return;
+      }
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') { setError('Permission denied. Please enter area manually.'); return; }
+      if (status !== 'granted') { setError('Location permission denied. Enter area manually.'); return; }
       const loc  = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const [addr] = await Location.reverseGeocodeAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
       if (addr) {
@@ -260,7 +269,7 @@ export default function ProfileSetupScreen() {
       }
       setLocationCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
     } catch {
-      setError('Could not detect location. Please enter manually.');
+      setError('Could not detect location. Enter your area manually.');
     } finally {
       setLocationLoading(false);
     }

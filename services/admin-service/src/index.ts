@@ -5,7 +5,13 @@ import jwt       from 'jsonwebtoken';
 import bcrypt    from 'bcryptjs';
 import axios     from 'axios';
 import dotenv    from 'dotenv';
-import { success, failure, createLogger } from '@serveease/shared/utils';
+import {
+  success,
+  failure,
+  attachRequestIdToAxios,
+  createLogger,
+  createRequestContextMiddleware,
+} from '@serveease/shared/utils';
 import { VerificationStatus } from '@serveease/shared/types';
 
 dotenv.config();
@@ -13,6 +19,7 @@ dotenv.config();
 const app  = express();
 const PORT = parseInt(process.env.PORT || '3009', 10);
 const log  = createLogger('admin-service');
+attachRequestIdToAxios(axios);
 
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (
   process.env.NODE_ENV === 'production'
@@ -27,6 +34,7 @@ const BOOKING_SERVICE_URL = process.env.BOOKING_SERVICE_URL || 'http://booking-s
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(createRequestContextMiddleware('admin-service'));
 
 // ─── Admin Auth Middleware ────────────────────────────────────────────────────
 const adminAuth = (req: any, res: any, next: any) => {

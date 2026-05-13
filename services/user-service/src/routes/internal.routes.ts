@@ -5,6 +5,25 @@ import { success, failure, createLogger } from '@serveease/shared/utils';
 const router = Router();
 const log    = createLogger('user-service');
 
+// GET /internal/users/stats — aggregate stats for admin dashboard
+router.get('/stats', async (_req, res) => {
+  const ctx = { fn: 'internalUserStats', tag: 'userService_internalUserStats', action: 'INTERNAL_USER_STATS' };
+  try {
+    const [total, blocked, activeToday] = await Promise.all([
+      UserModel.countDocuments(),
+      UserModel.countDocuments({ isBlocked: true }),
+      UserModel.countDocuments({
+        updatedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      }),
+    ]);
+    log.info(ctx, 'User stats fetched', { total, blocked, activeToday });
+    res.json(success({ total, blocked, activeToday }, 'User stats'));
+  } catch (err) {
+    log.error({ ...ctx, tag: 'userService_internalUserStats_failed' }, 'Internal user stats failed', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
 // GET /internal/users/:phone — fetch full user record by phone
 router.get('/:phone', async (req, res) => {
   const ctx = { fn: 'internalGetUser', tag: 'userService_internalGetUser', action: 'INTERNAL_GET_USER' };
@@ -54,25 +73,6 @@ router.patch('/:phone/wallet', async (req, res) => {
     res.json(success({ balance: user.wallet.balance }, 'Wallet updated'));
   } catch (err) {
     log.error({ ...ctx, tag: 'userService_internalWalletUpdate_failed' }, 'Internal wallet update failed', err);
-    res.status(500).json(failure('Internal server error'));
-  }
-});
-
-// GET /internal/users/stats — aggregate stats for admin dashboard
-router.get('/stats', async (_req, res) => {
-  const ctx = { fn: 'internalUserStats', tag: 'userService_internalUserStats', action: 'INTERNAL_USER_STATS' };
-  try {
-    const [total, blocked, activeToday] = await Promise.all([
-      UserModel.countDocuments(),
-      UserModel.countDocuments({ isBlocked: true }),
-      UserModel.countDocuments({
-        updatedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-      }),
-    ]);
-    log.info(ctx, 'User stats fetched', { total, blocked, activeToday });
-    res.json(success({ total, blocked, activeToday }, 'User stats'));
-  } catch (err) {
-    log.error({ ...ctx, tag: 'userService_internalUserStats_failed' }, 'Internal user stats failed', err);
     res.status(500).json(failure('Internal server error'));
   }
 });

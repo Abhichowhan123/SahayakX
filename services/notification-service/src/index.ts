@@ -9,7 +9,7 @@ import {
   IBookingCreatedEvent, IBookingStatusChangedEvent,
   IPenaltyEvent, BookingStatus,
 } from '@serveease/shared/types';
-import { createLogger } from '@serveease/shared/utils';
+import { createLogger, createRequestContextMiddleware } from '@serveease/shared/utils';
 
 dotenv.config();
 
@@ -20,6 +20,7 @@ const log  = createLogger('notification-service');
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(createRequestContextMiddleware('notification-service'));
 
 // ─── Firebase Admin Init ──────────────────────────────────────────────────────
 let firebaseReady = false;
