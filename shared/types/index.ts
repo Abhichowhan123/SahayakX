@@ -20,7 +20,6 @@ export enum ServiceCategory {
 
 export enum BookingStatus {
   SEARCHING              = 'searching',
-  OFFER_SENT             = 'offer_sent',
   ACCEPTED               = 'accepted',
   WORKER_EN_ROUTE        = 'worker_en_route',
   IN_PROGRESS            = 'in_progress',
@@ -62,20 +61,20 @@ export enum UserRole {
 // ─── Sub-types ───────────────────────────────────────────────────────────────
 
 export const SERVICE_SUBTYPES: Record<ServiceCategory, string[]> = {
-  [ServiceCategory.CONSTRUCTION]:  ['Carpenter', 'Trowel/Mistri', 'Welder', 'Painter', 'Mason'],
-  [ServiceCategory.HOME_TEACHER]:  ['Mathematics', 'Science', 'English', 'Hindi', 'Computer',
-                                    'Music', 'Art', 'Physics', 'Chemistry', 'Biology'],
-  [ServiceCategory.GARDEN_WORK]:   ['Lawn Mowing', 'Tree Trimming', 'Garden Design', 'Watering System'],
-  [ServiceCategory.COOK]:          ['Indian', 'Continental', 'Baking', 'Party Catering', 'Diet Cook'],
-  [ServiceCategory.GYM_TRAINER]:   ['Weight Loss', 'Muscle Building', 'Yoga', 'Zumba', 'CrossFit'],
-  [ServiceCategory.ELECTRICIAN]:   ['Wiring', 'Appliance Repair', 'Solar Panel', 'CCTV Installation'],
-  [ServiceCategory.PLUMBER]:       ['Pipe Repair', 'Bathroom Fitting', 'Water Tank', 'Drainage'],
-  [ServiceCategory.HOUSE_MAID]:    ['Daily Cleaning', 'Part-time', 'Full-time', 'Deep Cleaning'],
-  [ServiceCategory.DRIVER]:        ['Daily Driver', 'Outstation', 'Airport Drop', 'School Run'],
-  [ServiceCategory.PEST_CONTROL]:  ['Cockroach', 'Termite', 'Bed Bugs', 'Rodents', 'General Pest'],
-  [ServiceCategory.AC_TECHNICIAN]: ['AC Service', 'AC Repair', 'AC Installation', 'Gas Refill'],
-  [ServiceCategory.BABYSITTER]:    ['Newborn Care', 'Toddler', 'After School', 'Weekend'],
-  [ServiceCategory.PET_CARE]:      ['Dog Walking', 'Pet Grooming', 'Pet Sitting', 'Vet Escort'],
+  [ServiceCategory.HOUSE_MAID]:    ['Cooking', 'Cleaning', 'Laundry', 'Dishwashing', 'Elder Care', 'Child Care', 'Deep Cleaning'],
+  [ServiceCategory.GARDEN_WORK]:   ['Lawn Mowing', 'Landscaping', 'Plant Care', 'Tree Trimming', 'Irrigation Setup', 'Terrace Garden'],
+  [ServiceCategory.CONSTRUCTION]:  ['Masonry', 'Carpentry', 'Painting', 'Flooring', 'Tiling', 'Roofing', 'Plastering', 'Demolition', 'Welding'],
+  [ServiceCategory.ELECTRICIAN]:   ['Wiring', 'Appliance Repair', 'Switchboard', 'CCTV Installation', 'Home Automation', 'Solar Panel'],
+  [ServiceCategory.PLUMBER]:       ['Pipe Fitting', 'Leak Repair', 'Bathroom Fitting', 'Water Heater', 'Drainage', 'Bore Well'],
+  [ServiceCategory.HOME_TEACHER]:  ['Mathematics', 'Science', 'English', 'Hindi', 'Physics', 'Chemistry', 'Biology',
+                                    'History', 'Geography', 'Economics', 'Commerce', 'Computer', 'Art', 'Music', 'Dance'],
+  [ServiceCategory.GYM_TRAINER]:   ['Weight Training', 'Yoga', 'Zumba', 'Cardio', 'CrossFit', 'Pilates', 'Boxing', 'Calisthenics', 'Nutrition Coaching'],
+  [ServiceCategory.COOK]:          ['North Indian', 'South Indian', 'Bengali', 'Punjabi', 'Chinese', 'Continental', 'Italian', 'Baking', 'Biryani'],
+  [ServiceCategory.DRIVER]:        ['Personal Driver', 'School Van', 'Outstation', 'Airport Drop', 'Delivery', 'Cab'],
+  [ServiceCategory.PEST_CONTROL]:  ['Cockroach', 'Termite', 'Rodent/Rat', 'Bed Bugs', 'Mosquito', 'Ants', 'Bees/Wasps', 'General Fumigation'],
+  [ServiceCategory.AC_TECHNICIAN]: ['Installation', 'Repair', 'Cleaning/Service', 'Gas Refilling', 'Uninstallation'],
+  [ServiceCategory.BABYSITTER]:    ['Newborn (0–1y)', 'Toddler (1–3y)', 'Preschool (3–5y)', 'School-age (5–12y)'],
+  [ServiceCategory.PET_CARE]:      ['Dog Walking', 'Grooming', 'Pet Sitting/Boarding', 'Training', 'Vet Assistance', 'Aquarium Care'],
 };
 
 // ─── Shared Interfaces ───────────────────────────────────────────────────────

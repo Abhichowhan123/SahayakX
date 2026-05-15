@@ -1,19 +1,26 @@
 import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
-import { failure } from '@serveease/shared/utils';
+import { failure, createLogger } from '@serveease/shared/utils';
+
+const log = createLogger('booking-service');
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) { res.status(401).json(failure('Authentication required')); return; }
+  if (!token) {
+    log.warn({ fn: 'authenticate', tag: 'bookingService_authenticate_noToken', action: 'AUTH_VALIDATE' }, 'No token in request — all headers logged', { headers: JSON.stringify(req.headers) });
+    res.status(401).json(failure('Authentication required'));
+    return;
+  }
   try {
     const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/validate`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     (req as any).user = data.data;
     next();
-  } catch {
+  } catch (err) {
+    log.warn({ fn: 'authenticate', tag: 'bookingService_authenticate_tokenValidationFailed', action: 'AUTH_VALIDATE' }, 'Token validation failed against auth-service', { error: err instanceof Error ? err.message : String(err) });
     res.status(401).json(failure('Invalid or expired token'));
   }
 };

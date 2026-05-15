@@ -6,7 +6,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp }                 from '@react-navigation/native';
 import { RootStackParamList }        from '../../navigation';
-import { workerApi }                 from '../../api';
+import { workerApi, bookingApi }     from '../../api';
 import PriceOfferModal               from '../../components/booking/PriceOfferModal';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
@@ -23,6 +23,10 @@ interface Worker {
   experience:      number;
   serviceCategory: string;
   serviceSubTypes: string[];
+  skills:          string[];
+  languages:       string[];
+  serviceArea:     string;
+  availability:    { days: string[]; shift: string };
   ratings:         { average: number; totalReviews: number };
   pricing:         { hourlyRate: number; currency: string; isNegotiable: boolean; suggestedFares?: number[] };
   isOnline:        boolean;
@@ -63,6 +67,30 @@ export default function WorkerListScreen({ navigation, route }: Props) {
     setPriceModalVisible(true);
   };
 
+  const handleConfirmBooking = async (offeredPrice?: number) => {
+    if (!selectedWorker) return;
+    setPriceModalVisible(false);
+    try {
+      const today = new Date();
+      const { data } = await bookingApi.create({
+        workerId:          selectedWorker._id,
+        serviceCategory:   category,
+        serviceSubType:    subType,
+        requestedDate:     today.toISOString().split('T')[0],
+        requestedTimeSlot: 'now',
+        estimatedDuration: 1,
+        customerAddress:   {},
+        paymentMethod:     'cash',
+        customerOfferedPrice: offeredPrice,
+      });
+      navigation.navigate('BookingTracking', { bookingId: data.data.bookingId });
+    } catch {
+      Alert.alert('Booking Failed', 'Could not create booking. Please try again.');
+    } finally {
+      setSelectedWorker(null);
+    }
+  };
+
   const renderWorker = ({ item }: { item: Worker }) => (
     <TouchableOpacity
       style={styles.card}
@@ -81,11 +109,11 @@ export default function WorkerListScreen({ navigation, route }: Props) {
         {/* Info */}
         <View style={styles.info}>
           <Text style={styles.name}>{item.fullName || 'Worker'}</Text>
-          <Text style={styles.exp}>{item.experience} yr exp · {item.serviceSubTypes.join(', ') || categoryLabel}</Text>
+          <Text style={styles.exp}>{item.experience} yr exp</Text>
           <View style={styles.ratingRow}>
             <Text style={styles.star}>★</Text>
             <Text style={styles.rating}>{item.ratings.average.toFixed(1)}</Text>
-            <Text style={styles.ratingCount}>({item.ratings.totalReviews})</Text>
+            <Text style={styles.ratingCount}>({item.ratings.totalReviews} reviews)</Text>
           </View>
         </View>
 
@@ -95,6 +123,31 @@ export default function WorkerListScreen({ navigation, route }: Props) {
           <Text style={styles.priceUnit}>/hr</Text>
           {item.pricing.isNegotiable && <Text style={styles.negotiable}>Negotiable</Text>}
         </View>
+      </View>
+
+      {/* Sub-type chips */}
+      {item.serviceSubTypes?.length > 0 && (
+        <View style={styles.chipsRow}>
+          {item.serviceSubTypes.slice(0, 4).map(st => (
+            <View key={st} style={styles.chip}><Text style={styles.chipText}>{st}</Text></View>
+          ))}
+          {item.serviceSubTypes.length > 4 && (
+            <View style={styles.chip}><Text style={styles.chipText}>+{item.serviceSubTypes.length - 4}</Text></View>
+          )}
+        </View>
+      )}
+
+      {/* Meta row: location + availability */}
+      <View style={styles.metaRow}>
+        {item.serviceArea ? (
+          <Text style={styles.metaTag} numberOfLines={1}>📍 {item.serviceArea}</Text>
+        ) : null}
+        {item.availability?.shift ? (
+          <Text style={styles.metaTag}>🕐 {item.availability.shift}</Text>
+        ) : null}
+        {item.languages?.length > 0 && (
+          <Text style={styles.metaTag}>🗣 {item.languages.slice(0, 2).join(', ')}</Text>
+        )}
       </View>
 
       <TouchableOpacity style={styles.bookBtn} onPress={() => handleBook(item)}>
@@ -142,10 +195,7 @@ export default function WorkerListScreen({ navigation, route }: Props) {
           visible={priceModalVisible}
           worker={selectedWorker}
           onClose={() => { setPriceModalVisible(false); setSelectedWorker(null); }}
-          onBook={(offeredPrice) => {
-            setPriceModalVisible(false);
-            navigation.navigate('WorkerProfile', { workerId: selectedWorker._id });
-          }}
+          onBook={handleConfirmBooking}
         />
       )}
     </SafeAreaView>
@@ -177,6 +227,11 @@ const styles = StyleSheet.create({
   price:            { fontSize: FONTS.sizes.lg, fontWeight: '800', color: COLORS.primary },
   priceUnit:        { fontSize: FONTS.sizes.xs, color: COLORS.textSecondary },
   negotiable:       { fontSize: FONTS.sizes.xs, color: COLORS.success, fontWeight: '600', marginTop: 2 },
+  chipsRow:         { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: SPACING.sm },
+  chip:             { backgroundColor: COLORS.primary + '15', paddingHorizontal: SPACING.sm, paddingVertical: 3, borderRadius: BORDER_RADIUS.full },
+  chipText:         { fontSize: FONTS.sizes.xs, color: COLORS.primary, fontWeight: '600' },
+  metaRow:          { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: SPACING.sm },
+  metaTag:          { fontSize: FONTS.sizes.xs, color: COLORS.textSecondary, backgroundColor: COLORS.inputBg, paddingHorizontal: SPACING.sm, paddingVertical: 3, borderRadius: BORDER_RADIUS.full, overflow: 'hidden' },
   bookBtn:          { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
   bookBtnText:      { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.white },
   empty:            { alignItems: 'center', paddingTop: 80 },

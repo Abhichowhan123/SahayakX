@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, TextInput, FlatList, Modal,
@@ -11,6 +11,15 @@ import {
   SERVICE_CATEGORIES, CONSTRUCTION_SUBTYPES,
   TEACHER_SUBJECTS, COLORS, SPACING, BORDER_RADIUS, FONTS,
 } from '../../constants';
+import { userApi } from '../../api';
+
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h >= 5  && h < 12) return 'Good morning';
+  if (h >= 12 && h < 17) return 'Good afternoon';
+  if (h >= 17 && h < 21) return 'Good evening';
+  return 'Good night';
+};
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> };
 
@@ -18,6 +27,13 @@ export default function HomeScreen({ navigation }: Props) {
   const { user, isWorkerMode, setWorkerMode } = useAuth();
   const [search,        setSearch]        = useState('');
   const [subTypeModal,  setSubTypeModal]  = useState<{ category: typeof SERVICE_CATEGORIES[0]; options: string[] } | null>(null);
+  const [customerName,  setCustomerName]  = useState<string | null>(null);
+
+  useEffect(() => {
+    userApi.getProfile()
+      .then(({ data }) => setCustomerName(data?.data?.fullName || null))
+      .catch(() => {});
+  }, []);
 
   const filtered = SERVICE_CATEGORIES.filter((c) =>
     c.label.toLowerCase().includes(search.toLowerCase()),
@@ -48,12 +64,14 @@ export default function HomeScreen({ navigation }: Props) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good morning 👋</Text>
+            <Text style={styles.greeting}>{getGreeting()}, {customerName || user?.phone} 👋</Text>
             <Text style={styles.phone}>{user?.phone}</Text>
           </View>
-          <TouchableOpacity style={styles.modeToggle} onPress={() => setWorkerMode(!isWorkerMode)}>
-            <Text style={styles.modeText}>{isWorkerMode ? 'Switch to Customer' : 'Worker Mode'}</Text>
-          </TouchableOpacity>
+          {user?.role === 'worker' && (
+            <TouchableOpacity style={styles.modeToggle} onPress={() => setWorkerMode(!isWorkerMode)}>
+              <Text style={styles.modeText}>{isWorkerMode ? 'Switch to Customer' : 'Worker Mode'}</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Search bar */}

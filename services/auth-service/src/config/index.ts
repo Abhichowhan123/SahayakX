@@ -6,7 +6,11 @@ export const config = {
   mongoUri:      process.env.MONGODB_URI   || 'mongodb://localhost:27017/serveease_auth',
   redisUrl:      process.env.REDIS_URL     || 'redis://localhost:6379',
   rabbitMqUrl:   process.env.RABBITMQ_URL  || 'amqp://localhost:5672',
-  jwtSecret:     process.env.JWT_SECRET    || 'serveease_jwt_secret_change_in_prod',
+  jwtSecret:     process.env.JWT_SECRET    || (
+    process.env.NODE_ENV === 'production'
+      ? (() => { throw new Error('JWT_SECRET env var is required in production'); })()
+      : 'serveease_jwt_secret_change_in_prod'
+  ),
   jwtExpiresIn:  process.env.JWT_EXPIRES   || '7d',
   twilio: {
     accountSid: process.env.TWILIO_ACCOUNT_SID || '',

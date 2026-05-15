@@ -1,34 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Alert, SafeAreaView, Switch,
+  Alert, SafeAreaView, Switch, Platform,
 } from 'react-native';
-import { userApi, workerApi, paymentApi } from '../../api';
+import { useFocusEffect } from '@react-navigation/native';
+import { userApi, workerApi } from '../../api';
 import { useAuth }  from '../../context/AuthContext';
+import { appLogger } from '../../utils/logger';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }: any) {
   const { user, logout, isWorkerMode, setWorkerMode } = useAuth();
   const [profile,  setProfile]  = useState<any>(null);
   const [wallet,   setWallet]   = useState<any>(null);
   const [isOnline, setIsOnline] = useState(false);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        if (isWorkerMode) {
-          const [p] = await Promise.all([workerApi.getWorkerById('me')]);
-          setProfile(p.data.data);
-          setIsOnline(p.data.data.isOnline);
-        } else {
-          const [p, w] = await Promise.all([userApi.getProfile(), userApi.getWallet()]);
-          setProfile(p.data.data);
-          setWallet(w.data.data);
-        }
-      } catch { /* silent */ }
-    };
-    fetchProfile();
+  const fetchProfile = useCallback(async () => {
+    try {
+      if (isWorkerMode) {
+        const p = await workerApi.getMyProfile();
+        setProfile(p.data.data);
+        setIsOnline(p.data.data.isOnline);
+      } else {
+        const [p, w] = await Promise.all([userApi.getProfile(), userApi.getWallet()]);
+        setProfile(p.data.data);
+        setWallet(w.data.data);
+      }
+    } catch (err) {
+      appLogger.error({ fn: 'fetchProfile', tag: 'ProfileScreen_fetchProfile_failed', screen: 'Profile' }, 'Failed to fetch profile', err);
+    }
   }, [isWorkerMode]);
+
+  useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
 
   const handleToggleOnline = async (val: boolean) => {
     try {
@@ -40,10 +43,21 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: logout },
-    ]);
+    const doLogout = async () => {
+      try {
+        await logout();
+      } catch (err) {
+        appLogger.error({ fn: 'handleLogout', tag: 'ProfileScreen_handleLogout_failed', screen: 'Profile' }, 'Logout failed', err);
+      }
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to logout?')) doLogout();
+    } else {
+      Alert.alert('Logout', 'Are you sure you want to logout?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Logout', style: 'destructive', onPress: doLogout },
+      ]);
+    }
   };
 
   const MenuItem = ({ icon, label, onPress, value, isSwitch }: any) => (
@@ -104,17 +118,19 @@ export default function ProfileScreen() {
         {/* Account section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-          <MenuItem icon="👤" label="Edit Profile"      onPress={() => {}} />
+          <MenuItem icon="👤" label="Edit Profile"      onPress={() => navigation.navigate('EditProfile')} />
           <MenuItem icon="📍" label="Manage Addresses"  onPress={() => {}} />
           <MenuItem icon="💳" label="Payment Methods"   onPress={() => {}} />
           <MenuItem icon="📜" label="Transaction History" onPress={() => {}} />
         </View>
 
-        {/* Mode switch */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mode</Text>
-          <MenuItem icon={isWorkerMode ? '🛒' : '👷'} label={isWorkerMode ? 'Switch to Customer' : 'Switch to Worker Mode'} onPress={() => setWorkerMode(!isWorkerMode)} />
-        </View>
+        {/* Mode switch — only for workers */}
+        {user?.role === 'worker' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Mode</Text>
+            <MenuItem icon={isWorkerMode ? '🛒' : '👷'} label={isWorkerMode ? 'Switch to Customer' : 'Switch to Worker Mode'} onPress={() => setWorkerMode(!isWorkerMode)} />
+          </View>
+        )}
 
         {/* Support */}
         <View style={styles.section}>

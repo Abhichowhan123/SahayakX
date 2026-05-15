@@ -10,6 +10,7 @@ import { COLORS }                       from '../constants';
 // Auth screens
 import PhoneScreen          from '../screens/auth/PhoneScreen';
 import OtpScreen            from '../screens/auth/OtpScreen';
+import ProfileSetupScreen   from '../screens/auth/ProfileSetupScreen';
 // Customer screens
 import HomeScreen           from '../screens/home/HomeScreen';
 import WorkerListScreen     from '../screens/workers/WorkerListScreen';
@@ -17,6 +18,7 @@ import WorkerProfileScreen  from '../screens/workers/WorkerProfileScreen';
 import BookingTrackingScreen from '../screens/booking/BookingTrackingScreen';
 import BookingHistoryScreen from '../screens/booking/BookingHistoryScreen';
 import ProfileScreen        from '../screens/profile/ProfileScreen';
+import EditProfileScreen    from '../screens/profile/EditProfileScreen';
 // Worker screens
 import WorkerDashboard      from '../screens/workers/WorkerDashboard';
 
@@ -26,17 +28,19 @@ export type RootStackParamList = {
   WorkerList:       { category: string; subType?: string; categoryLabel: string };
   WorkerProfile:    { workerId: string };
   BookingTracking:  { bookingId: string };
+  EditProfile:      undefined;
 };
 
 export type AuthStackParamList = {
   Phone: undefined;
-  Otp:   { phone: string; role: 'customer' | 'worker' };
+  Otp:   { phone: string; role: 'customer' | 'worker'; mode: 'login' | 'register'; devOtp?: string };
 };
 
 export type TabParamList = {
-  Home:     undefined;
-  Bookings: undefined;
-  Profile:  undefined;
+  Home:      undefined;
+  Bookings:  undefined;
+  Profile:   undefined;
+  Dashboard: undefined;
 };
 
 const Stack  = createNativeStackNavigator<RootStackParamList>();
@@ -97,13 +101,22 @@ const WorkerTabs = () => (
 );
 
 export default function AppNavigator() {
-  const { user, isLoading, isWorkerMode } = useAuth();
+  const { user, isLoading, isWorkerMode, needsProfile } = useAuth();
 
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
+    );
+  }
+
+  // New user: authenticated but hasn't set up profile yet
+  if (user && needsProfile) {
+    return (
+      <NavigationContainer>
+        <ProfileSetupScreen />
+      </NavigationContainer>
     );
   }
 
@@ -118,6 +131,7 @@ export default function AppNavigator() {
             <Stack.Screen name="WorkerList"       component={WorkerListScreen}      />
             <Stack.Screen name="WorkerProfile"    component={WorkerProfileScreen}   />
             <Stack.Screen name="BookingTracking"  component={BookingTrackingScreen} />
+            <Stack.Screen name="EditProfile"      component={EditProfileScreen}     />
           </>
         )}
       </Stack.Navigator>

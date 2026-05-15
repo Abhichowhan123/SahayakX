@@ -4,16 +4,15 @@ import { upload } from '../utils/s3';
 import {
   getMyProfile, registerWorker, updateProfile,
   submitVerification, updateLocation, toggleOnline,
-  getWorkersByCategory, getWorkerById, getWorkerByIdInternal,
+  getWorkersByCategory, getWorkerById,
 } from '../controllers/worker.controller';
 
 const router = Router();
 
 // Public routes
-router.get('/',    getWorkersByCategory);
-router.get('/:id', getWorkerById);
+router.get('/', getWorkersByCategory);
 
-// Authenticated worker routes
+// Authenticated worker routes — /me must come before /:id
 router.post('/register',    authenticate, requireRole('worker'), registerWorker);
 router.get('/me',           authenticate, requireRole('worker'), getMyProfile);
 router.put('/me',           authenticate, requireRole('worker'), updateProfile);
@@ -30,8 +29,7 @@ router.post('/me/verify',
   submitVerification,
 );
 
-// Internal routes (service-to-service, no auth)
-const internalRouter = Router();
-internalRouter.get('/:id', getWorkerByIdInternal);
+// Public — must come after /me routes so Express doesn't swallow them
+router.get('/:id', getWorkerById);
 
-export { router as workerRouter, internalRouter as internalWorkerRouter };
+export { router as workerRouter };

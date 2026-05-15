@@ -1,9 +1,17 @@
 import crypto from 'crypto';
 
+export {
+  createLogger,
+  createRequestContextMiddleware,
+  getRequestLogContext,
+  attachRequestIdToAxios,
+} from './logger';
+export type { ServiceLogger, LogCtx } from './logger';
+
 // ─── OTP ─────────────────────────────────────────────────────────────────────
 
 export const generateOTP = (length = 6): string =>
-  Array.from({ length }, () => Math.floor(Math.random() * 10)).join('');
+  Array.from({ length }, () => crypto.randomInt(0, 10)).join('');
 
 export const generateBookingId = (): string => {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -14,7 +22,11 @@ export const generateBookingId = (): string => {
 // ─── Encryption (for Aadhaar/bank details) ───────────────────────────────────
 
 const ALGORITHM  = 'aes-256-gcm';
-const SECRET_KEY = process.env.ENCRYPTION_KEY || 'serveease_default_key_32chars!!';
+const SECRET_KEY = process.env.ENCRYPTION_KEY || (
+  process.env.NODE_ENV === 'production'
+    ? (() => { throw new Error('ENCRYPTION_KEY env var is required in production'); })()
+    : 'serveease_default_key_32chars!!'
+);
 const KEY        = crypto.scryptSync(SECRET_KEY, 'salt', 32);
 
 export const encrypt = (text: string): string => {
@@ -65,6 +77,26 @@ export const getPaginationParams = (query: Record<string, string | undefined>) =
   skip:  (Math.max(1, parseInt(query.page || '1', 10)) - 1) *
           Math.min(50, parseInt(query.limit || '10', 10)),
 });
+
+// ─── Connection lifecycle logger ─────────────────────────────────────────────
+// Attaches Mongoose connection events so app logs mirror what MongoDB itself logs
+// (e.g. "Received first command on ingress connection since session start or auth handshake")
+
+interface EventEmitterLike { on(event: string, listener: (...args: any[]) => void): any; }
+
+const connLog = (level: string, service: string, event: string, extra?: object) =>
+  console.log(JSON.stringify({ ts: new Date().toISOString(), eventId: crypto.randomUUID(), level, service, event, ...extra }));
+
+export const attachMongooseLogger = (conn: EventEmitterLike, service: string): void => {
+  conn.on('connecting',    () => connLog('info',  service, 'MONGO_CONNECTING'));
+  conn.on('connected',     () => connLog('info',  service, 'MONGO_CONNECTED'));
+  conn.on('open',          () => connLog('info',  service, 'MONGO_CONNECTION_OPEN'));
+  conn.on('disconnecting', () => connLog('warn',  service, 'MONGO_DISCONNECTING'));
+  conn.on('disconnected',  () => connLog('warn',  service, 'MONGO_DISCONNECTED'));
+  conn.on('close',         () => connLog('warn',  service, 'MONGO_CONNECTION_CLOSED'));
+  conn.on('reconnected',   () => connLog('info',  service, 'MONGO_RECONNECTED'));
+  conn.on('error',   (err) => connLog('error', service, 'MONGO_ERROR', { error: err?.message }));
+};
 
 // ─── Response helpers ─────────────────────────────────────────────────────────
 

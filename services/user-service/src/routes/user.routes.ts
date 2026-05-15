@@ -3,7 +3,7 @@ import { authenticate, requireRole } from '../middleware/auth.middleware';
 import {
   getProfile, updateProfile, updateLocation,
   addAddress, deleteAddress, saveWorker, unsaveWorker,
-  getWallet, getUserByPhone,
+  getWallet,
 } from '../controllers/user.controller';
 
 const router = Router();
@@ -19,8 +19,4 @@ router.post('/save-worker/:workerId',    requireRole('customer'), saveWorker);
 router.delete('/save-worker/:workerId',  requireRole('customer'), unsaveWorker);
 router.get('/wallet',                    requireRole('customer'), getWallet);
 
-// Internal route (no auth required, called by other services)
-const internalRouter = Router();
-internalRouter.get('/:phone', getUserByPhone);
-
-export { router as userRouter, internalRouter as internalUserRouter };
+export { router as userRouter };

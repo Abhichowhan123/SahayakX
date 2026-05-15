@@ -17,10 +17,12 @@ type Props = {
 const OTP_LENGTH = 6;
 
 export default function OtpScreen({ navigation, route }: Props) {
-  const { phone, role } = route.params;
+  const { phone, role, mode, devOtp } = route.params;
   const { verifyOtp, sendOtp } = useAuth();
 
-  const [digits,    setDigits]    = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  const [digits,    setDigits]    = useState<string[]>(
+    devOtp ? devOtp.split('') : Array(OTP_LENGTH).fill(''),
+  );
   const [loading,   setLoading]   = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(30);
@@ -65,10 +67,14 @@ export default function OtpScreen({ navigation, route }: Props) {
   const handleResend = async () => {
     setResending(true);
     try {
-      await sendOtp(phone, role);
+      const result = await sendOtp(phone, role, mode);
       setCountdown(30);
-      setDigits(Array(OTP_LENGTH).fill(''));
-      refs.current[0]?.focus();
+      if (result?.devOtp) {
+        setDigits(result.devOtp.split(''));
+      } else {
+        setDigits(Array(OTP_LENGTH).fill(''));
+        refs.current[0]?.focus();
+      }
     } catch {
       Alert.alert('Error', 'Could not resend OTP. Try again.');
     } finally {
@@ -87,6 +93,12 @@ export default function OtpScreen({ navigation, route }: Props) {
         We sent a {OTP_LENGTH}-digit code to{'\n'}
         <Text style={styles.phone}>{phone}</Text>
       </Text>
+
+      {devOtp ? (
+        <View style={styles.devBanner}>
+          <Text style={styles.devBannerText}>🛠 DEV MODE — OTP: {devOtp}</Text>
+        </View>
+      ) : null}
 
       {/* OTP boxes */}
       <View style={styles.otpRow}>
@@ -142,4 +154,6 @@ const styles = StyleSheet.create({
   resendHint:   { fontSize: FONTS.sizes.sm, color: COLORS.textMuted },
   timer:        { fontWeight: '700', color: COLORS.primary },
   resendLink:   { fontSize: FONTS.sizes.sm, color: COLORS.primary, fontWeight: '700' },
+  devBanner:    { backgroundColor: '#FFF3CD', borderRadius: BORDER_RADIUS.md, padding: SPACING.sm, marginBottom: SPACING.md, alignItems: 'center', borderWidth: 1, borderColor: '#FFC107' },
+  devBannerText:{ fontSize: FONTS.sizes.sm, fontWeight: '700', color: '#856404' },
 });

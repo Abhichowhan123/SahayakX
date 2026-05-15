@@ -167,7 +167,8 @@ Run these in your terminal to confirm services respond:
 
 ```bash
 curl http://localhost/health               # should return {"status":"ok",...}
-curl http://localhost/api/catalog/categories   # should return service list
+curl http://localhost/catalog/categories
+   # should return service list
 ```
 
 - [ ] Health check returns `{"status":"ok"}`
@@ -175,10 +176,108 @@ curl http://localhost/api/catalog/categories   # should return service list
 
 ---
 
-## STEP 5 — (Optional) External API Keys
+## STEP 5 — Run the Admin Panel UI (test all services from browser or Android)
+
+The admin panel is a separate Expo app at `admin-panel/`. It lets you test every service through a UI instead of curl.
+
+### 5.1 Start the admin panel
+
+```bash
+cd /Users/abhishekchowhan/Desktop/MyProject/serveease/admin-panel
+npx expo start --web --port 8082
+```
+
+- Opens in web browser at `http://localhost:8082`
+- Press **`a`** → opens on Android emulator (AVD must be running)
+- Scan QR with **Expo Go** app → opens on real Android phone
+
+- [ ] Admin panel starts without errors
+
+---
+
+### 5.2 Android device / emulator — set API URL
+
+By default the panel points to `localhost:80`. On Android that doesn't reach your Mac's Docker.
+
+**Android Emulator (AVD):**
+
+Create `admin-panel/.env`:
+```
+EXPO_PUBLIC_API_URL=http://10.0.2.2:80
+```
+
+**Real Android phone (same WiFi):**
+
+Find your Mac's LAN IP first:
+```bash
+ipconfig getifaddr en0
+```
+
+Then create `admin-panel/.env`:
+```
+EXPO_PUBLIC_API_URL=http://192.168.1.XX:80
+```
+
+- [ ] `.env` created with correct IP for your device
+
+---
+
+### 5.3 What each tab tests
+
+| Tab | Service | What you can do |
+|---|---|---|
+| Dashboard | All | Health check — green = UP, red = DOWN |
+| Auth | auth-service (3001) | Send OTP → verify OTP → get JWT token |
+| Users | user-service (3002) | Fetch profile, wallet balance |
+| Workers | worker-service (3003) | Search nearby by category, get worker detail |
+| Catalog | catalog-service (3004) | Load all categories and pricing |
+| Bookings | booking-service (3005) | List bookings, filter by status, cancel |
+| Payments | payment-service (3006) | View payment history |
+| Reviews | review-service (3008) | View reviews for any worker |
+| Admin | admin-service (3009) | Verify/reject workers, block users, resolve disputes, broadcast notifications |
+
+- [ ] Dashboard shows all services UP after `docker compose up`
+- [ ] Auth tab: OTP sent and JWT token received
+- [ ] Catalog tab: categories load from Redis cache
+- [ ] Workers tab: search returns workers in your area
+
+---
+
+### 5.4 Full end-to-end test flow (golden path)
+
+1. **Auth tab** → Send OTP for a customer phone → Verify OTP → token saved
+2. **Catalog tab** → Load categories → note a category name (e.g. `plumber`)
+3. **Workers tab** → Search by that category → copy a worker `_id`
+4. **Reviews tab** → Paste the worker `_id` → load their reviews
+5. **Admin tab** → Login with admin credentials → load pending workers → approve one
+6. **Bookings tab** → List bookings → check status after a booking is created from mobile app
+
+---
+
+## STEP 6 — (Optional) External API Keys
 
 Fill in these `.env` values only when you want to test that specific feature.
 Leave blank to skip — the rest of the app still works.
+
+---
+
+## LOGGING WHILE TESTING
+
+Use separate terminals so one noisy service does not hide the error you need:
+
+```bash
+npm run logs:errors       # errors across backend services
+npm run logs:auth         # auth-service only
+npm run logs:booking      # booking-service only
+npm run logs:worker       # worker-service only
+npm run logs:admin        # admin-service only
+```
+
+Each formatted log line has `requestId` and `eventId`. Search one request across services:
+
+```bash
+npm run logs:backend -- --grep <requestId>
+```
 
 | Feature | Service | Keys Needed |
 |---|---|---|

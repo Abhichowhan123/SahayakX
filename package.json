@@ -8,15 +8,31 @@
     "services/*"
   ],
   "scripts": {
-    "dev": "docker-compose -f docker-compose.dev.yml up",
-    "build": "docker-compose build",
-    "start": "docker-compose up -d",
-    "stop": "docker-compose down",
-    "logs": "docker-compose logs -f",
+    "dev": "docker compose up",
+    "build": "docker compose build",
+    "start": "docker compose up -d",
+    "stop": "docker compose down",
+    "logs": "node scripts/logs.js all",
+    "logs:raw": "docker compose logs -f",
+    "logs:backend": "node scripts/logs.js backend",
+    "logs:errors": "node scripts/logs.js backend --level error",
+    "logs:gateway": "node scripts/logs.js gateway",
+    "logs:auth": "node scripts/logs.js auth",
+    "logs:user": "node scripts/logs.js user",
+    "logs:worker": "node scripts/logs.js worker",
+    "logs:catalog": "node scripts/logs.js catalog",
+    "logs:booking": "node scripts/logs.js booking",
+    "logs:payment": "node scripts/logs.js payment",
+    "logs:notification": "node scripts/logs.js notification",
+    "logs:review": "node scripts/logs.js review",
+    "logs:admin": "node scripts/logs.js admin",
     "shared:build": "cd shared && npm run build"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "@types/node": "^20.11.0"
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3"
   }
 }

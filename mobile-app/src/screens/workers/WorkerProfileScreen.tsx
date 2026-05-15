@@ -74,15 +74,69 @@ export default function WorkerProfileScreen({ navigation, route }: Props) {
           </View>
         ) : null}
 
-        {/* Skills */}
+        {/* Specializations */}
+        {worker.serviceSubTypes?.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Specializations</Text>
+            <View style={styles.chips}>
+              {worker.serviceSubTypes.map((s: string) => (
+                <View key={s} style={styles.chipPrimary}><Text style={styles.chipPrimaryText}>{s}</Text></View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Skills & Certifications */}
         {worker.skills?.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Skills</Text>
+            <Text style={styles.sectionTitle}>Skills & Certifications</Text>
             <View style={styles.chips}>
               {worker.skills.map((s: string) => (
                 <View key={s} style={styles.chip}><Text style={styles.chipText}>{s}</Text></View>
               ))}
             </View>
+          </View>
+        )}
+
+        {/* Service area + availability + languages */}
+        {(worker.serviceArea || worker.availability?.shift || worker.languages?.length > 0) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Details</Text>
+
+            {worker.serviceArea ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailIcon}>📍</Text>
+                <View style={styles.detailBody}>
+                  <Text style={styles.detailLabel}>Service Area</Text>
+                  <Text style={styles.detailValue}>{worker.serviceArea}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {(worker.availability?.days?.length > 0 || worker.availability?.shift) && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailIcon}>🗓</Text>
+                <View style={styles.detailBody}>
+                  <Text style={styles.detailLabel}>Availability</Text>
+                  {worker.availability.days?.length > 0 && (
+                    <Text style={styles.detailValue}>{worker.availability.days.join(', ')}</Text>
+                  )}
+                  {worker.availability.shift ? (
+                    <Text style={styles.detailValue}>{worker.availability.shift}</Text>
+                  ) : null}
+                </View>
+              </View>
+            )}
+
+            {worker.languages?.length > 0 && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailIcon}>🗣</Text>
+                <View style={styles.detailBody}>
+                  <Text style={styles.detailLabel}>Languages</Text>
+                  <Text style={styles.detailValue}>{worker.languages.join(', ')}</Text>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -149,8 +203,15 @@ const styles = StyleSheet.create({
   sectionTitle:      { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.sm },
   bio:               { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, lineHeight: 22 },
   chips:             { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
-  chip:              { backgroundColor: COLORS.primary + '15', paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: BORDER_RADIUS.full },
-  chipText:          { fontSize: FONTS.sizes.xs, color: COLORS.primary, fontWeight: '600' },
+  chip:              { backgroundColor: COLORS.inputBg, paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: COLORS.border },
+  chipText:          { fontSize: FONTS.sizes.xs, color: COLORS.textSecondary, fontWeight: '600' },
+  chipPrimary:       { backgroundColor: COLORS.primary + '15', paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: BORDER_RADIUS.full },
+  chipPrimaryText:   { fontSize: FONTS.sizes.xs, color: COLORS.primary, fontWeight: '700' },
+  detailRow:         { flexDirection: 'row', alignItems: 'flex-start', marginBottom: SPACING.md },
+  detailIcon:        { fontSize: 18, marginRight: SPACING.sm, marginTop: 1 },
+  detailBody:        { flex: 1 },
+  detailLabel:       { fontSize: FONTS.sizes.xs, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  detailValue:       { fontSize: FONTS.sizes.sm, color: COLORS.textPrimary, lineHeight: 20 },
   reviewCard:        { borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingVertical: SPACING.sm },
   reviewHeader:      { flexDirection: 'row', justifyContent: 'space-between' },
   reviewRating:      { color: '#F59E0B', fontSize: FONTS.sizes.sm },

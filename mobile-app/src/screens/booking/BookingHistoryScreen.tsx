@@ -6,6 +6,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList }        from '../../navigation';
 import { bookingApi }                from '../../api';
+import { appLogger }                 from '../../utils/logger';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> };
@@ -38,8 +39,8 @@ export default function BookingHistoryScreen({ navigation }: Props) {
     try {
       const { data } = await bookingApi.getMyBookings({ status: filter });
       setBookings(data.data);
-    } catch {
-      // silent fail, show empty state
+    } catch (err) {
+      appLogger.error({ fn: 'fetchBookings', tag: 'BookingHistoryScreen_fetchBookings_failed', screen: 'BookingHistory' }, 'Failed to fetch bookings', err);
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -1,4 +1,4 @@
-import amqplib, { Channel, Connection } from 'amqplib';
+import amqplib, { Channel, ChannelModel, ConsumeMessage } from 'amqplib';
 
 export enum QueueName {
   BOOKING_CREATED        = 'booking.created',
@@ -10,11 +10,27 @@ export enum QueueName {
   WORKER_REJECTED        = 'worker.rejected',
 }
 
-let connection: Connection | null = null;
-let channel:    Channel    | null = null;
+let connection: ChannelModel | null = null;
+let channel:    Channel      | null = null;
+
+const rmqLog = (level: string, event: string, extra?: object) =>
+  console.log(JSON.stringify({ ts: new Date().toISOString(), level, service: 'rabbitmq-client', event, ...extra }));
 
 export const connectRabbitMQ = async (url: string): Promise<Channel> => {
   connection = await amqplib.connect(url);
+
+  // These fire for broker-level issues (auth failures, connection drops, etc.)
+  // "Connection not authenticating" in Docker logs means one of these fired on the broker side
+  (connection as any).on('error', (err: Error) =>
+    rmqLog('error', 'RABBITMQ_CONNECTION_ERROR', { error: err?.message }),
+  );
+  (connection as any).on('close', () =>
+    rmqLog('warn', 'RABBITMQ_CONNECTION_CLOSED'),
+  );
+  (connection as any).on('blocked', (reason: string) =>
+    rmqLog('warn', 'RABBITMQ_CONNECTION_BLOCKED', { reason }),
+  );
+
   channel    = await connection.createChannel();
 
   // Assert all queues
@@ -23,7 +39,7 @@ export const connectRabbitMQ = async (url: string): Promise<Channel> => {
   }
 
   console.log('[RabbitMQ] Connected and queues asserted');
-  return channel;
+  return channel!;
 };
 
 export const publishEvent = <T>(queue: QueueName, payload: T): void => {
@@ -40,7 +56,7 @@ export const consumeEvent = <T>(
   handler: (payload: T) => Promise<void>,
 ): void => {
   if (!channel) throw new Error('RabbitMQ channel not initialized');
-  channel.consume(queue, async (msg) => {
+  channel.consume(queue, async (msg: ConsumeMessage | null) => {
     if (!msg) return;
     try {
       const payload = JSON.parse(msg.content.toString()) as T;
