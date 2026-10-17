@@ -58,7 +58,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
       bookingId, customerId, workerId: '', serviceCategory, serviceSubType,
       status: BookingStatus.SEARCHING,
       pricing: { workerQuotedPrice, customerOfferedPrice, finalAgreedPrice, platformFee, tax, totalAmount, currency: 'INR' },
-      schedule: { requestedDate, requestedTimeSlot, estimatedDuration },
+      schedule: { requestedDate, requestedTimeSlot, estimatedDuration, expiresAt: new Date(Date.now() + CANCELLATION_RULES.workerAcceptanceTimeoutSeconds * 1000) },
       location: { customerAddress, ...(geoLocation && { geo: geoLocation }) },
       otp:     { code: otp, verified: false },
       payment: { method: paymentMethod, status: PaymentStatus.PENDING },

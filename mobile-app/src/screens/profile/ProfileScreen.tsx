@@ -6,11 +6,14 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { userApi, workerApi } from '../../api';
 import { useAuth }  from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { appLogger } from '../../utils/logger';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { ThemeColors } from '../../theme/theme';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, logout, isWorkerMode, setWorkerMode } = useAuth();
+  const { theme, colors, setTheme } = useTheme();
   const [profile,  setProfile]  = useState<any>(null);
   const [wallet,   setWallet]   = useState<any>(null);
   const [isOnline, setIsOnline] = useState(false);
@@ -65,10 +68,12 @@ export default function ProfileScreen({ navigation }: any) {
       <Text style={styles.menuIcon}>{icon}</Text>
       <Text style={styles.menuLabel}>{label}</Text>
       {isSwitch
-        ? <Switch value={value} onValueChange={onPress} trackColor={{ true: COLORS.primary }} />
+        ? <Switch value={value} onValueChange={onPress} trackColor={{ true: colors.primary }} />
         : <Text style={styles.menuArrow}>›</Text>}
     </TouchableOpacity>
   );
+
+  const styles = createStyles(colors);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -78,10 +83,18 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={styles.avatarWrap}>
             <Text style={styles.avatarText}>{profile?.fullName?.[0] || user?.phone?.[0] || '?'}</Text>
           </View>
-          <Text style={styles.name}>{profile?.fullName || 'Set your name'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.name}>{profile?.fullName || 'Set your name'}</Text>
+            {isWorkerMode && profile?.verification?.status === 'verified' && (
+              <Text style={{ fontSize: 18 }}>✅</Text>
+            )}
+            {isWorkerMode && profile?.verification?.status !== 'verified' && (
+              <Text style={{ fontSize: 16, color: colors.textMuted }}>⚪</Text>
+            )}
+          </View>
           <Text style={styles.phone}>{user?.phone}</Text>
           {isWorkerMode && (
-            <View style={[styles.badge, { backgroundColor: isOnline ? COLORS.success : COLORS.textMuted }]}>
+            <View style={[styles.badge, { backgroundColor: isOnline ? colors.success : colors.textMuted }]}>
               <Text style={styles.badgeText}>{isOnline ? 'Online' : 'Offline'}</Text>
             </View>
           )}
@@ -115,11 +128,24 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         )}
 
+        {/* Theme */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Theme</Text>
+          <MenuItem
+            icon={theme === 'dark' ? '🌙' : '☀️'}
+            label="Dark Mode"
+            isSwitch
+            value={theme === 'dark'}
+            onPress={(val: boolean) => setTheme(val ? 'dark' : 'light')}
+          />
+          <Text style={styles.themeHint}>More themes coming soon</Text>
+        </View>
+
         {/* Account section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           <MenuItem icon="👤" label="Edit Profile"      onPress={() => navigation.navigate('EditProfile')} />
-          <MenuItem icon="📍" label="Manage Addresses"  onPress={() => {}} />
+          <MenuItem icon="📍" label="Manage Addresses"  onPress={() => navigation.navigate('Addresses')} />
           <MenuItem icon="💳" label="Payment Methods"   onPress={() => {}} />
           <MenuItem icon="📜" label="Transaction History" onPress={() => {}} />
         </View>
@@ -129,6 +155,18 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Mode</Text>
             <MenuItem icon={isWorkerMode ? '🛒' : '👷'} label={isWorkerMode ? 'Switch to Customer' : 'Switch to Worker Mode'} onPress={() => setWorkerMode(!isWorkerMode)} />
+          </View>
+        )}
+
+        {/* Worker verification */}
+        {user?.role === 'worker' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Verification</Text>
+            <MenuItem
+              icon="📄"
+              label="Verification Documents"
+              onPress={() => navigation.navigate('Verification')}
+            />
           </View>
         )}
 
@@ -153,28 +191,29 @@ export default function ProfileScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe:        { flex: 1, backgroundColor: COLORS.background },
-  hero:        { backgroundColor: COLORS.white, alignItems: 'center', paddingVertical: SPACING.xl },
-  avatarWrap:  { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.sm },
-  avatarText:  { fontSize: FONTS.sizes.xxl, fontWeight: '700', color: COLORS.white },
-  name:        { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.textPrimary },
-  phone:       { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, marginTop: 4 },
+const createStyles = (c: ThemeColors) => StyleSheet.create({
+  safe:        { flex: 1, backgroundColor: c.background },
+  hero:        { backgroundColor: c.surface, alignItems: 'center', paddingVertical: SPACING.xl },
+  avatarWrap:  { width: 80, height: 80, borderRadius: 40, backgroundColor: c.primary, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.sm },
+  avatarText:  { fontSize: FONTS.sizes.xxl, fontWeight: '700', color: c.white },
+  name:        { fontSize: FONTS.sizes.lg, fontWeight: '700', color: c.textPrimary },
+  phone:       { fontSize: FONTS.sizes.sm, color: c.textSecondary, marginTop: 4 },
   badge:       { marginTop: SPACING.sm, paddingHorizontal: SPACING.md, paddingVertical: 4, borderRadius: BORDER_RADIUS.full },
-  badgeText:   { fontSize: FONTS.sizes.xs, fontWeight: '700', color: COLORS.white },
-  walletCard:  { backgroundColor: COLORS.primary, margin: SPACING.md, borderRadius: BORDER_RADIUS.lg, padding: SPACING.lg },
-  walletLabel: { fontSize: FONTS.sizes.sm, color: COLORS.white + 'CC' },
-  walletAmount:{ fontSize: FONTS.sizes.xxl, fontWeight: '800', color: COLORS.white, marginTop: 4 },
-  walletSub:   { fontSize: FONTS.sizes.xs, color: COLORS.white + 'AA', marginTop: 4 },
-  topupBtn:    { marginTop: SPACING.sm, backgroundColor: COLORS.white + '25', borderRadius: BORDER_RADIUS.full, paddingVertical: 6, paddingHorizontal: SPACING.md, alignSelf: 'flex-start' },
-  topupText:   { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.white },
-  section:     { backgroundColor: COLORS.white, marginBottom: SPACING.sm, paddingHorizontal: SPACING.md },
-  sectionTitle:{ fontSize: FONTS.sizes.xs, fontWeight: '700', color: COLORS.textMuted, paddingTop: SPACING.md, paddingBottom: SPACING.xs, textTransform: 'uppercase', letterSpacing: 1 },
-  menuItem:    { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  badgeText:   { fontSize: FONTS.sizes.xs, fontWeight: '700', color: c.white },
+  walletCard:  { backgroundColor: c.primary, margin: SPACING.md, borderRadius: BORDER_RADIUS.lg, padding: SPACING.lg },
+  walletLabel: { fontSize: FONTS.sizes.sm, color: c.white + 'CC' },
+  walletAmount:{ fontSize: FONTS.sizes.xxl, fontWeight: '800', color: c.white, marginTop: 4 },
+  walletSub:   { fontSize: FONTS.sizes.xs, color: c.white + 'AA', marginTop: 4 },
+  topupBtn:    { marginTop: SPACING.sm, backgroundColor: c.white + '25', borderRadius: BORDER_RADIUS.full, paddingVertical: 6, paddingHorizontal: SPACING.md, alignSelf: 'flex-start' },
+  topupText:   { fontSize: FONTS.sizes.sm, fontWeight: '700', color: c.white },
+  section:     { backgroundColor: c.surface, marginBottom: SPACING.sm, paddingHorizontal: SPACING.md },
+  sectionTitle:{ fontSize: FONTS.sizes.xs, fontWeight: '700', color: c.textMuted, paddingTop: SPACING.md, paddingBottom: SPACING.xs, textTransform: 'uppercase', letterSpacing: 1 },
+  menuItem:    { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.md, borderBottomWidth: 1, borderBottomColor: c.border },
   menuIcon:    { fontSize: FONTS.sizes.base, marginRight: SPACING.md, width: 24 },
-  menuLabel:   { flex: 1, fontSize: FONTS.sizes.base, color: COLORS.textPrimary },
-  menuArrow:   { fontSize: FONTS.sizes.lg, color: COLORS.textMuted },
-  logoutBtn:   { margin: SPACING.md, borderWidth: 1.5, borderColor: COLORS.error, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
-  logoutText:  { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.error },
-  version:     { textAlign: 'center', fontSize: FONTS.sizes.xs, color: COLORS.textMuted, marginTop: SPACING.sm },
+  menuLabel:   { flex: 1, fontSize: FONTS.sizes.base, color: c.textPrimary },
+  menuArrow:   { fontSize: FONTS.sizes.lg, color: c.textMuted },
+  themeHint:   { fontSize: FONTS.sizes.xs, color: c.textMuted, marginTop: SPACING.xs, paddingHorizontal: SPACING.md },
+  logoutBtn:   { margin: SPACING.md, borderWidth: 1.5, borderColor: c.error, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
+  logoutText:  { fontSize: FONTS.sizes.base, fontWeight: '700', color: c.error },
+  version:     { textAlign: 'center', fontSize: FONTS.sizes.xs, color: c.textMuted, marginTop: SPACING.sm },
 });

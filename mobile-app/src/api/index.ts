@@ -175,6 +175,7 @@ export const userApi = {
   updateLocation:(lat: number, lng: number) =>
     api.put('/users/me/location', { latitude: lat, longitude: lng }),
   addAddress:    (address: object) => api.post('/users/me/addresses', address),
+  deleteAddress: (id: string)       => api.delete(`/users/me/addresses/${id}`),
   getWallet:     ()               => api.get('/users/me/wallet'),
 };
 

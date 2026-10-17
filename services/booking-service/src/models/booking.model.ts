@@ -28,6 +28,7 @@ export interface IBookingDocument extends Document {
     estimatedDuration:  number;
     startedAt?:         Date;
     completedAt?:       Date;
+    expiresAt?:         Date;
   };
 
   location: {
@@ -35,6 +36,7 @@ export interface IBookingDocument extends Document {
     workerStartCoords?: [number, number];
   };
 
+  
   otp: {
     code:     string;
     verified: boolean;
@@ -85,6 +87,7 @@ const BookingSchema = new Schema<IBookingDocument>({
     estimatedDuration: { type: Number, default: 1 },
     startedAt:         Date,
     completedAt:       Date,
+    expiresAt:         Date,
   },
 
   location: {
