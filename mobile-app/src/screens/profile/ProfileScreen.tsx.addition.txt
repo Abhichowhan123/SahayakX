@@ -1,0 +1,16 @@
+        {/* Worker verification status */}
+        {isWorkerMode && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Verification</Text>
+            <MenuItem
+              icon="✅"
+              label="Verification Status"
+              onPress={() => navigation.navigate('VerificationStatus')}
+            />
+            <MenuItem
+              icon="📄"
+              label="Resubmit Verification"
+              onPress={() => navigation.navigate('Verification')}
+            />
+          </View>
+        )}
