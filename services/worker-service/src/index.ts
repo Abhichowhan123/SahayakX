@@ -3,6 +3,7 @@ import cors     from 'cors';
 import helmet   from 'helmet';
 import mongoose from 'mongoose';
 import dotenv   from 'dotenv';
+import { createClient } from 'redis';
 import axios    from 'axios';
 import { workerRouter } from './routes/worker.routes';
 import internalRoutes from './routes/internal.routes';
@@ -11,6 +12,7 @@ import {
   attachRequestIdToAxios,
   createLogger,
   createRequestContextMiddleware,
+  setRedisGeoClient,
 } from '@serveease/shared/utils';
 
 dotenv.config();
@@ -39,6 +41,12 @@ const start = async () => {
   attachMongooseLogger(mongoose.connection, 'worker-service');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/serveease_workers');
   log.info({ fn: 'start', action: 'STARTUP' }, 'MongoDB connected');
+
+  const geoClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+  await geoClient.connect();
+  setRedisGeoClient(geoClient as any);
+  log.info({ fn: 'start', action: 'STARTUP' }, 'Redis connected for GEO tracking');
+
   app.listen(PORT, () => log.info({ fn: 'start', action: 'STARTUP' }, 'Worker service started', { port: PORT }));
 };
 

@@ -8,14 +8,14 @@ const router = Router();
 // Allow up to 10 OTP sends per 10 minutes per IP
 const sendOtpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max:      10,
+   max:      100000,
   message:  { success: false, message: 'Too many OTP requests. Try after 10 minutes.' },
 });
 
 // Allow up to 10 verify attempts per 10 minutes per IP
 const verifyOtpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max:      10,
+   max:      100000,
   message:  { success: false, message: 'Too many verify attempts. Try after 10 minutes.' },
 });
 

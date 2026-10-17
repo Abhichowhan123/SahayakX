@@ -12,21 +12,28 @@ export default function WorkerDashboard() {
   const [isOnline,        setIsOnline]        = useState(false);
   const [loading,         setLoading]         = useState(true);
 
+  const loadData = async (showSpinner = false) => {
+    if (showSpinner) setLoading(true);
+    try {
+      const [profileRes, pending, active] = await Promise.all([
+        workerApi.getMyProfile().catch(() => null),
+        bookingApi.getMyBookings({ status: 'searching' }),
+        bookingApi.getMyBookings({ status: 'accepted' }),
+      ]);
+      if (profileRes?.data?.data) {
+        setIsOnline(profileRes.data.data.isOnline);
+      }
+      setPendingBookings(pending.data.data);
+      setActiveBooking(active.data.data?.[0] || null);
+    } finally {
+      if (showSpinner) setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [pending, active] = await Promise.all([
-          bookingApi.getMyBookings({ status: 'searching' }),
-          bookingApi.getMyBookings({ status: 'accepted' }),
-        ]);
-        setPendingBookings(pending.data.data);
-        setActiveBooking(active.data.data?.[0] || null);
-      } catch { /* silent */ }
-      finally { setLoading(false); }
-    };
-    load();
+    loadData(true);
     // Poll every 10 seconds for new booking requests
-    const interval = setInterval(load, 10000);
+    const interval = setInterval(() => loadData(false), 10000);
     return () => clearInterval(interval);
   }, []);
 

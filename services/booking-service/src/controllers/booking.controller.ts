@@ -4,74 +4,77 @@ import { publishEvent, QueueName } from '@serveease/shared/events';
 import {
   generateBookingId, generateOTP, calculatePenalty,
   success, failure, getPaginationParams, createLogger,
+  findNearbyWorkers,
 } from '@serveease/shared/utils';
 import {
   BookingStatus, PaymentStatus,
   CANCELLATION_RULES, PLATFORM_CONFIG,
 } from '@serveease/shared/types';
 import axios from 'axios';
+import { createClient } from 'redis';
 
 const log = createLogger('booking-service');
 
 const WORKER_SERVICE_URL  = process.env.WORKER_SERVICE_URL  || 'http://worker-service:3003';
 const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://payment-service:3006';
 
+let lockClient: ReturnType<typeof createClient> | null = null;
+export const setBookingLockClient = (client: ReturnType<typeof createClient>): void => {
+  lockClient = client;
+};
+
+const requireLockClient = (): ReturnType<typeof createClient> => {
+  if (!lockClient) throw new Error('Redis lock client not initialized in booking-service');
+  return lockClient;
+};
+
 // ─── POST /bookings — Create booking request ──────────────────────────────────
 export const createBooking = async (req: Request, res: Response): Promise<void> => {
   const customerId = (req as any).user.phone as string;
   const {
-    workerId, serviceCategory, serviceSubType,
+    serviceCategory, serviceSubType,
     requestedDate, requestedTimeSlot, estimatedDuration,
     customerAddress, paymentMethod, customerOfferedPrice,
+    location,  // { lat, lng }
   } = req.body;
   const ctx = { fn: 'createBooking', tag: 'bookingService_createBooking', userId: customerId, role: 'customer', action: 'CREATE_BOOKING' };
-  log.enter(ctx, { workerId, serviceCategory, serviceSubType, estimatedDuration });
+  log.enter(ctx, { serviceCategory, serviceSubType, estimatedDuration });
 
   try {
-    let workerData: any;
-    try {
-      const { data } = await axios.get(`${WORKER_SERVICE_URL}/internal/workers/${workerId}`);
-      workerData = data.data;
-      log.info(ctx, 'Worker data fetched from worker-service', { workerId, isOnline: workerData.isOnline, isAvailable: workerData.isAvailable });
-    } catch (err) {
-      log.error(ctx, 'Failed to fetch worker from worker-service', err);
-      res.status(404).json(failure('Worker not found'));
-      return;
-    }
+    const otp       = generateOTP(4);
+    const bookingId = generateBookingId();
 
-    if (!workerData.isOnline || !workerData.isAvailable) {
-      log.warn(ctx, 'Worker is unavailable', { workerId, isOnline: workerData.isOnline, isAvailable: workerData.isAvailable });
-      res.status(400).json(failure('Worker is not available right now'));
-      return;
-    }
-
-    const workerQuotedPrice = workerData.pricing.hourlyRate * estimatedDuration;
+    const workerQuotedPrice = 0;
     const finalAgreedPrice  = customerOfferedPrice || workerQuotedPrice;
     const platformFee       = Math.round(finalAgreedPrice * PLATFORM_CONFIG.commissionPercent * 100) / 100;
     const tax               = Math.round(finalAgreedPrice * PLATFORM_CONFIG.taxPercent * 100) / 100;
     const totalAmount       = finalAgreedPrice + platformFee + tax;
 
-    const otp       = generateOTP(4);
-    const bookingId = generateBookingId();
+    const geoLocation = location?.lat != null && location?.lng != null
+      ? { type: 'Point' as const, coordinates: [location.lng, location.lat] as [number, number] }
+      : undefined;
 
     await BookingModel.create({
-      bookingId, customerId, workerId, serviceCategory, serviceSubType,
+      bookingId, customerId, workerId: '', serviceCategory, serviceSubType,
       status: BookingStatus.SEARCHING,
       pricing: { workerQuotedPrice, customerOfferedPrice, finalAgreedPrice, platformFee, tax, totalAmount, currency: 'INR' },
       schedule: { requestedDate, requestedTimeSlot, estimatedDuration },
-      location: { customerAddress },
+      location: { customerAddress, ...(geoLocation && { geo: geoLocation }) },
       otp:     { code: otp, verified: false },
       payment: { method: paymentMethod, status: PaymentStatus.PENDING },
     });
     log.db(ctx, 'BookingModel.create', { bookingId, totalAmount, status: BookingStatus.SEARCHING });
 
     publishEvent(QueueName.BOOKING_CREATED, {
-      bookingId, customerId, workerId, serviceCategory, totalAmount,
-      customerPhone: customerId, workerPhone: workerData.phone,
+      bookingId, customerId, workerId: '', serviceCategory, totalAmount,
+      customerPhone: customerId, workerPhone: '',
     });
-    log.info(ctx, 'BOOKING_CREATED event published', { bookingId, workerId, totalAmount });
+    log.info(ctx, 'BOOKING_CREATED event published', { bookingId, totalAmount });
 
-    // Auto-expire if worker doesn't accept in time
+    // Dispatch to nearby workers in waves
+    await dispatchWave(bookingId, location);
+
+    // Auto-expire if no worker accepts in time
     setTimeout(async () => {
       try {
         const b = await BookingModel.findOne({ bookingId });
@@ -81,7 +84,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
           log.info({ fn: 'createBooking:autoExpire', tag: 'bookingService_autoExpire', action: 'AUTO_EXPIRE' }, 'Booking auto-expired', { bookingId });
           publishEvent(QueueName.BOOKING_STATUS_CHANGED, {
             bookingId, oldStatus: BookingStatus.SEARCHING, newStatus: BookingStatus.EXPIRED,
-            customerId, workerId,
+            customerId, workerId: '',
           });
         }
       } catch (err) {
@@ -89,10 +92,55 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
       }
     }, CANCELLATION_RULES.workerAcceptanceTimeoutSeconds * 1000);
 
-    res.status(201).json(success({ bookingId, totalAmount, otp: '****' }, 'Booking request sent to worker'));
+    res.status(201).json(success({ bookingId, totalAmount, otp: '****' }, 'Booking request sent. Waiting for nearby workers to accept.'));
   } catch (err) {
     log.error({ ...ctx, tag: 'bookingService_createBooking_failed' }, 'createBooking handler failed', err);
     res.status(500).json(failure('Internal server error'));
+  }
+};
+
+// ─── Dispatch booking to nearby workers (wave-based) ──────────────────────────
+export const dispatchWave = async (bookingId: string, location?: { lat: number; lng: number }): Promise<void> => {
+  const ctx = { fn: 'dispatchWave', tag: 'bookingService_dispatchWave', action: 'DISPATCH_WAVE' };
+  log.enter(ctx, { bookingId, location });
+
+  try {
+    const booking = await BookingModel.findOne({ bookingId });
+    if (!booking) {
+      log.warn(ctx, 'Booking not found for dispatch', { bookingId });
+      return;
+    }
+
+    const lat = location?.lat || 28.6139;
+    const lng = location?.lng || 77.2090;
+    const radiusKm = 5;
+    const waveSize = 8;
+
+    const nearbyWorkerIds = await findNearbyWorkers(lat, lng, radiusKm, waveSize);
+    log.info(ctx, 'Nearby workers found via Redis GEO', { bookingId, count: nearbyWorkerIds.length, workerIds: nearbyWorkerIds });
+
+    if (nearbyWorkerIds.length === 0) {
+      const booking = await BookingModel.findOne({ bookingId });
+      if (booking && booking.status === BookingStatus.SEARCHING) {
+        booking.status = BookingStatus.EXPIRED;
+        await booking.save();
+        publishEvent(QueueName.BOOKING_STATUS_CHANGED, {
+          bookingId, oldStatus: BookingStatus.SEARCHING, newStatus: BookingStatus.EXPIRED,
+          customerId: booking.customerId, workerId: '',
+        });
+      }
+      log.warn(ctx, 'No nearby workers available, booking expired', { bookingId });
+      return;
+    }
+
+    publishEvent(QueueName.BOOKING_DISPATCHED, {
+      bookingId, customerId: booking.customerId, workerIds: nearbyWorkerIds,
+      customerPhone: booking.customerId, serviceCategory: booking.serviceCategory,
+      lat, lng, radiusKm,
+    });
+    log.info(ctx, 'BOOKING_DISPATCHED event published', { bookingId, workerCount: nearbyWorkerIds.length, workerIds: nearbyWorkerIds });
+  } catch (err) {
+    log.error({ ...ctx, tag: 'bookingService_dispatchWave_failed' }, 'dispatchWave failed', err);
   }
 };
 
@@ -104,19 +152,38 @@ export const acceptBooking = async (req: Request, res: Response): Promise<void> 
   log.enter(ctx, { bookingId });
 
   try {
-    const booking = await BookingModel.findOne({ bookingId, workerId });
+    // Atomic lock: first worker to set the key wins the booking
+    const lockKey = `booking:${bookingId}:lock`;
+    const lockResult = await requireLockClient().set(lockKey, workerId, { NX: true, EX: 60 });
+    if (!lockResult) {
+      log.warn(ctx, 'Booking already accepted by another worker', { bookingId, workerId });
+      res.status(409).json(failure('Booking already taken by another worker'));
+      return;
+    }
+
+    const booking = await BookingModel.findOne({ bookingId, status: BookingStatus.SEARCHING });
     log.db(ctx, 'BookingModel.findOne', { found: !!booking, status: booking?.status });
 
-    if (!booking) { res.status(404).json(failure('Booking not found')); return; }
-    if (booking.status !== BookingStatus.SEARCHING) {
-      log.warn(ctx, 'Cannot accept booking in current status', { bookingId, status: booking.status });
-      res.status(400).json(failure(`Cannot accept. Booking is ${booking.status}`));
+    if (!booking) {
+      // Release lock since booking is gone
+      await requireLockClient().del(lockKey);
+      log.warn(ctx, 'Booking not found or already in non-searching state', { bookingId, workerId });
+      res.status(404).json(failure('Booking not found or already accepted'));
       return;
     }
 
     booking.status = BookingStatus.ACCEPTED;
+    booking.workerId = workerId;
     await booking.save();
     log.db(ctx, 'BookingModel.save (status=ACCEPTED)', { bookingId });
+
+    // Mark worker BUSY — remove from Redis GEO so they are not dispatched again
+    try {
+      await requireLockClient().zRem('workers:online', workerId);
+      log.info(ctx, 'Worker marked BUSY — removed from GEO online set', { workerId });
+    } catch (geoErr) {
+      log.warn(ctx, 'Failed to remove worker from GEO on accept', { workerId, error: geoErr instanceof Error ? geoErr.message : String(geoErr) });
+    }
 
     publishEvent(QueueName.BOOKING_STATUS_CHANGED, {
       bookingId, oldStatus: BookingStatus.SEARCHING, newStatus: BookingStatus.ACCEPTED,

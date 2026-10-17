@@ -30,7 +30,8 @@ export const createRequestContextMiddleware = (service: string) =>
       (Array.isArray(incoming) ? incoming[0] : incoming) ||
       req.headers?.['x-correlation-id'] ||
       randomUUID();
-
+    console.log("createRequestContextMiddleware "+ service)
+    console.log(JSON.stringify({ requestId, method: req.method, body: req.body }, null, 2));
     if (typeof res.setHeader === 'function') {
       res.setHeader('X-Request-Id', requestId);
     }

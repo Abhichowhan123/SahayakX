@@ -234,7 +234,6 @@ services:
       context: .
       dockerfile: services/admin-service/Dockerfile
     container_name: serveease-admin
-    env_file: ./services/admin-service/.env
     environment:
       - PORT=3009
       - MONGODB_URI=mongodb://mongo-admin:27017/serveease_admin
@@ -242,7 +241,8 @@ services:
       - USER_SERVICE_URL=http://user-service:3002
       - BOOKING_SERVICE_URL=http://booking-service:3005
       - ADMIN_USERNAME=admin
-      - ADMIN_JWT_SECRET=admin_super_secret_change_in_prod
+      - ADMIN_PASSWORD=admin123
+      - ADMIN_JWT_SECRET=admin_dev_secret_change_in_prod
     networks: [serveease-net]
     depends_on: [worker-service, user-service, booking-service]
     restart: unless-stopped

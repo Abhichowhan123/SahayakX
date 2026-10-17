@@ -1,4 +1,42 @@
 import crypto from 'crypto';
+import { createClient, RedisClientType } from 'redis';
+
+let geoClient: RedisClientType | null = null;
+
+export const setRedisGeoClient = (client: RedisClientType): void => {
+  geoClient = client;
+};
+
+const requireGeoClient = (): RedisClientType => {
+  if (!geoClient) throw new Error('Redis geo client not initialized. Call setRedisGeoClient first.');
+  return geoClient;
+};
+
+export const addOnlineWorker = async (workerId: string, lat: number, lng: number): Promise<void> => {
+  const client = requireGeoClient();
+  await client.geoAdd('workers:online', { longitude: lng, latitude: lat, member: workerId });
+};
+
+export const removeOnlineWorker = async (workerId: string): Promise<void> => {
+  const client = requireGeoClient();
+  await client.zRem('workers:online', workerId);
+};
+
+export const findNearbyWorkers = async (
+  lat: number,
+  lng: number,
+  radiusKm: number,
+  limit = 10,
+): Promise<string[]> => {
+  const client = requireGeoClient();
+  const members = await (client as any).geoSearch(
+    'workers:online',
+    { longitude: lng, latitude: lat },
+    'unit',
+    { unit: 'km', radius: radiusKm, order: 'ASC', count: limit },
+  );
+  return members as string[];
+};
 
 export {
   createLogger,
@@ -15,18 +53,17 @@ export const generateOTP = (length = 6): string =>
 
 export const generateBookingId = (): string => {
   const timestamp = Date.now().toString(36).toUpperCase();
-  const random    = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const random    = Array.from({ length: 4 }, () => crypto.randomInt(0, 36).toString(36).toUpperCase()).join('');
   return `SRV-${timestamp}-${random}`;
 };
 
 // ─── Encryption (for Aadhaar/bank details) ───────────────────────────────────
 
 const ALGORITHM  = 'aes-256-gcm';
-const SECRET_KEY = process.env.ENCRYPTION_KEY || (
-  process.env.NODE_ENV === 'production'
-    ? (() => { throw new Error('ENCRYPTION_KEY env var is required in production'); })()
-    : 'serveease_default_key_32chars!!'
-);
+const SECRET_KEY = process.env.ENCRYPTION_KEY;
+if (!SECRET_KEY) {
+  throw new Error('ENCRYPTION_KEY env var is required');
+}
 const KEY        = crypto.scryptSync(SECRET_KEY, 'salt', 32);
 
 export const encrypt = (text: string): string => {

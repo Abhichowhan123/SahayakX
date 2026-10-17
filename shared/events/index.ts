@@ -3,6 +3,7 @@ import amqplib, { Channel, ChannelModel, ConsumeMessage } from 'amqplib';
 export enum QueueName {
   BOOKING_CREATED        = 'booking.created',
   BOOKING_STATUS_CHANGED = 'booking.status_changed',
+  BOOKING_DISPATCHED     = 'booking.dispatched',
   PAYMENT_PROCESSED      = 'payment.processed',
   PENALTY_CHARGED        = 'penalty.charged',
   NOTIFICATION_SEND      = 'notification.send',

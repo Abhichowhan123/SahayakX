@@ -66,6 +66,61 @@ Home services marketplace (like Rapido) — TypeScript microservices + MongoDB +
 - [ ] CI/CD pipeline — GitHub Actions: lint → test → docker build → push to registry on merge to main
 - [ ] Kubernetes manifests — k8s/ folder with Deployment + Service + HPA for each microservice
 
+## Bug Fixes (README audit — 29 issues)
+
+### Critical (10)
+- [x] Fix #1: mobile-app/src/api/index.ts:49 — platform 'mobile' not accepted by Joi ('ios'|'android'|'web')
+- [x] Fix #2: booking-service/src/controllers/booking.controller.ts:258–259 — cancelBooking publishes oldStatus === newStatus
+- [x] Fix #3: shared/utils/index.ts:17 — Hardcoded AES fallback key
+- [x] Fix #4: shared/utils/index.ts:5–6 — Math.random() for OTP generation (not crypto-secure)
+- [x] Fix #5: admin-panel/src/api/client.ts:32 — PUT /admin/workers/:id/approve → POST /admin/workers/:workerId/verify
+- [x] Fix #6: admin-panel/src/api/client.ts:42 — GET /admin/stats → GET /admin/dashboard
+- [x] Fix #7: admin-panel/src/api/client.ts:41 — POST /admin/notifications/broadcast → POST /admin/broadcast-notification
+- [x] Fix #8: admin-panel/src/api/client.ts:31 — GET /admin/workers/pending → GET /admin/workers/pending-verification
+- [x] Fix #9: booking-service/src/controllers/booking.controller.ts:166 — startWork always publishes oldStatus WORKER_EN_ROUTE
+- [x] Fix #10: payment-service/src/index.ts — PAYMENT_PROCESSED queue published but never consumed
+
+### Warning (13)
+- [x] Fix #11: auth-service/src/controllers/auth.controller.ts:90 — isNewUser always returns true
+- [x] Fix #12: user-service/src/routes/user.routes.ts:22–26 — internalUserRouter exported but never registered
+- [x] Fix #13: worker-service/src/routes/worker.routes.ts:37 — internalWorkerRouter exported but never registered
+- [x] Fix #14: api-gateway/nginx.conf — No location /notifications/ block
+- [x] Fix #15: admin-panel/src/screens/DashboardScreen.tsx:11–20 — Health check paths wrong
+- [x] Fix #16: user-service/src/routes/internal.routes.ts:35 — Wallet debit increments cancellationCount
+- [ ] Fix #17: booking-service/src/controllers/booking.controller.ts:76 — setTimeout expiry lost on restart
+- [x] Fix #18: admin-service/src/index.ts:171 — mongoose.connect but no models defined
+- [x] Fix #19: docker-compose.yml:247 — ADMIN_PASSWORD_HASH placeholder
+- [x] Fix #20: docker-compose.yml:248 — ADMIN_JWT_SECRET hardcoded plaintext
+- [x] Fix #21: worker-service/src/utils/s3.ts:29 — ACL: 'private' as any throws 400
+- [x] Fix #22: package.json:11 — npm run dev references missing docker-compose.dev.yml
+- [x] Fix #23: worker-service/src/controllers/worker.controller.ts:149–155 — $near + .skip() MongoDB error
+
+### Minor (6)
+- [x] Fix #24: mobile-app/src/screens/workers/WorkerListScreen.tsx:146 — onBook navigates to WorkerProfile instead of booking
+- [x] Fix #25: notification-service/src/index.ts:44–47 — Twilio client initialized unconditionally
+- [x] Fix #26: mobile-app/src/constants/index.ts — pest_control missing from SERVICE_CATEGORIES
+- [x] Fix #27: auth-service/src/config/index.ts:9 — Hardcoded fallback JWT secret
+- [x] Fix #28: admin-service/src/index.ts:16 — Hardcoded fallback admin JWT secret
+- [x] Fix #29: shared/types/index.ts:23 — BookingStatus.OFFER_SENT defined but never used
+
+## Wave-Based Dispatch (Nearby Worker Assignment) — Implemented
+
+Instead of customer picking a specific worker, the system now:
+- Customer selects category + location → booking saved as `SEARCHING` (no workerId)
+- `dispatchWave(bookingId)` finds 5–8 nearby verified workers via Redis GEO (`workers:online`)
+- Publishes `BOOKING_DISPATCHED` → notification-service sends push/SMS to all wave workers
+- `acceptBooking` uses atomic Redis lock `SET booking:{id}:lock {workerId} NX EX 60` — first worker to accept wins, others get "already taken"
+- Accepted worker removed from GEO (BUSY) until job completes/cancels
+
+Files changed:
+- `shared/utils/index.ts` — `setRedisGeoClient`, `addOnlineWorker`, `removeOnlineWorker`, `findNearbyWorkers`
+- `shared/events/index.ts` — added `QueueName.BOOKING_DISPATCHED`
+- `services/worker-service/src/index.ts` — creates Redis GEO client on startup
+- `services/worker-service/src/controllers/worker.controller.ts` — `toggleOnline`/`updateLocation` sync Redis GEO
+- `services/booking-service/src/index.ts` — creates Redis lock client on startup
+- `services/booking-service/src/controllers/booking.controller.ts` — `createBooking` (no workerId), `dispatchWave`, `acceptBooking` (atomic lock)
+- `services/notification-service/src/index.ts` — consumes `BOOKING_DISPATCHED`, notifies wave workers
+
 ## Key Design Decisions
 - Each microservice has its OWN MongoDB database (true microservice isolation)
 - Payment held in escrow after worker accepts; released only after job completion

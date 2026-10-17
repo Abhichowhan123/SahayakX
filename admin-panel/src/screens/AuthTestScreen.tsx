@@ -36,7 +36,7 @@ export default function AuthTestScreen() {
       setResponse(data);
       const t = data.data?.token;
       if (t) {
-        await SecureStore.setItemAsync('admin_token', t);
+        await SecureStore.setItemAsync('user_token', t);
         setToken(t);
       }
     } catch (err: any) {

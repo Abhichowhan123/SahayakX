@@ -4,6 +4,7 @@ import helmet         from 'helmet';
 import admin          from 'firebase-admin';
 import twilio         from 'twilio';
 import dotenv         from 'dotenv';
+import axios          from 'axios';
 import { connectRabbitMQ, consumeEvent, QueueName } from '@serveease/shared/events';
 import {
   IBookingCreatedEvent, IBookingStatusChangedEvent,
@@ -16,6 +17,19 @@ dotenv.config();
 const app  = express();
 const PORT = parseInt(process.env.PORT || '3007', 10);
 const log  = createLogger('notification-service');
+
+const WORKER_SERVICE_URL = process.env.WORKER_SERVICE_URL || 'http://worker-service:3003';
+
+interface IDispatchEvent {
+  bookingId:   string;
+  customerId:  string;
+  workerIds:   string[];
+  customerPhone: string;
+  serviceCategory: string;
+  lat: number;
+  lng: number;
+  radiusKm: number;
+}
 
 app.use(helmet());
 app.use(cors());
@@ -177,14 +191,47 @@ const start = async () => {
     async (event) => {
       const ctx = { fn: 'onNotificationSend', userId: event.userId, action: 'SEND_NOTIFICATION' };
       log.enter(ctx, { title: event.title, hasFcmToken: !!event.fcmToken });
-      if (event.fcmToken) {
-        await sendPush(event.fcmToken, event.title, event.body);
-        log.info(ctx, 'Push notification sent from general event', { title: event.title });
-      } else {
-        log.warn(ctx, 'General notification event received but no fcmToken', { userId: event.userId });
+    if (event.fcmToken) {
+      await sendPush(event.fcmToken, event.title, event.body);
+      log.info(ctx, 'Push notification sent from general event', { title: event.title });
+    } else {
+      log.warn(ctx, 'General notification event received but no fcmToken', { userId: event.userId });
+    }
+  });
+
+  // ── Listen: Booking Dispatched → notify wave of nearby workers ────────────
+  consumeEvent<IDispatchEvent>(QueueName.BOOKING_DISPATCHED, async (event) => {
+    const ctx = { fn: 'onBookingDispatched', action: 'NOTIFY_WAVE_WORKERS' };
+    log.enter(ctx, { bookingId: event.bookingId, workerCount: event.workerIds.length });
+
+    for (const workerId of event.workerIds) {
+      try {
+        const { data } = await axios.get(`${WORKER_SERVICE_URL}/internal/workers/${workerId}`);
+        const worker = data.data || data;
+        const phone   = worker.phone;
+        const fcmToken = worker.fcmToken;
+
+        const title = 'New Booking Request!';
+        const body  = `A customer wants to book ${event.serviceCategory}. Accept within 2 minutes. (ID: ${event.bookingId})`;
+
+        if (fcmToken) {
+          await sendPush(fcmToken, title, body);
+          log.info(ctx, 'Push sent to worker in wave', { workerId, fcmToken: !!fcmToken });
+        }
+        if (phone) {
+          await sendSms(phone, `ServeEase: ${body}`);
+          log.info(ctx, 'SMS sent to worker in wave', { workerId, phone: !!phone });
+        }
+        if (!fcmToken && !phone) {
+          log.warn(ctx, 'Worker has no contact info', { workerId });
+        }
+      } catch (err) {
+        log.error({ ...ctx, tag: 'notifyWaveWorkerFailed', userId: workerId }, 'Failed to notify worker in wave', err);
       }
-    },
-  );
+    }
+
+    log.info(ctx, 'Wave notification round complete', { bookingId: event.bookingId });
+  });
 
   app.listen(PORT, () => log.info({ fn: 'start', action: 'STARTUP' }, 'Notification service started', { port: PORT }));
 };

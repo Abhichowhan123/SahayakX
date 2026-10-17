@@ -77,9 +77,14 @@ export const adminApi = {
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────
+const getUserToken = () =>
+  Platform.OS === 'web'
+    ? Promise.resolve(localStorage.getItem('user_token'))
+    : SecureStore.getItemAsync('user_token');
+
 export const userApi = {
-  getProfile:  () => api.get('/users/me'),
-  getWallet:   () => api.get('/users/me/wallet'),
+  getProfile:  () => getUserToken().then(t => api.get('/users/me', { headers: t ? { Authorization: `Bearer ${t}` } : {} })),
+  getWallet:   () => getUserToken().then(t => api.get('/users/me/wallet', { params: {}, headers: t ? { Authorization: `Bearer ${t}` } : {} })),
 };
 
 // ─── Catalog ──────────────────────────────────────────────────────────────────
@@ -105,7 +110,7 @@ export const bookingApi = {
 
 // ─── Payments ─────────────────────────────────────────────────────────────────
 export const paymentApi = {
-  getHistory: () => api.get('/payments/history'),
+  getHistory: () => getUserToken().then(t => api.get('/payments/history', { headers: t ? { Authorization: `Bearer ${t}` } : {} })),
 };
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────

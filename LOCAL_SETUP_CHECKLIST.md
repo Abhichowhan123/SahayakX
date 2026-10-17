@@ -119,9 +119,11 @@ NODE_ENV=development
 ## STEP 2 — Start Docker
 
 ```bash
-cd /Users/abhishekchowhan/Desktop/MyProject/serveease
+cd /path/to/SahayakX
 docker compose up --build
 ```
+
+Replace `/path/to/SahayakX` with the directory where you cloned this repository.
 
 - [ ] Command runs without "file not found" errors for .env files
 - [ ] All images build successfully (takes 2-5 min first time)
@@ -183,7 +185,7 @@ The admin panel is a separate Expo app at `admin-panel/`. It lets you test every
 ### 5.1 Start the admin panel
 
 ```bash
-cd /Users/abhishekchowhan/Desktop/MyProject/serveease/admin-panel
+cd /path/to/SahayakX/admin-panel
 npx expo start --web --port 8082
 ```
 

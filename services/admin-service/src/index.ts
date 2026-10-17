@@ -21,11 +21,7 @@ const PORT = parseInt(process.env.PORT || '3009', 10);
 const log  = createLogger('admin-service');
 attachRequestIdToAxios(axios);
 
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (
-  process.env.NODE_ENV === 'production'
-    ? (() => { throw new Error('ADMIN_JWT_SECRET env var is required in production'); })()
-    : 'admin_secret_change_in_prod'
-);
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (() => { throw new Error('ADMIN_JWT_SECRET env var is required'); })();
 
 const WORKER_SERVICE_URL  = process.env.WORKER_SERVICE_URL  || 'http://worker-service:3003';
 const USER_SERVICE_URL    = process.env.USER_SERVICE_URL    || 'http://user-service:3002';
@@ -59,7 +55,7 @@ const adminAuth = (req: any, res: any, next: any) => {
 let ADMIN_PASS_HASH = '';
 const PLAIN_PASSWORD = process.env.ADMIN_PASSWORD;
 if (PLAIN_PASSWORD) {
-  bcrypt.hash(PLAIN_PASSWORD, 10).then(h => { ADMIN_PASS_HASH = h; });
+  ADMIN_PASS_HASH = bcrypt.hashSync(PLAIN_PASSWORD, 10);
 } else {
   ADMIN_PASS_HASH = process.env.ADMIN_PASSWORD_HASH || '';
 }

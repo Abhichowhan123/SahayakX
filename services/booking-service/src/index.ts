@@ -5,6 +5,7 @@ import mongoose  from 'mongoose';
 import http      from 'http';
 import { Server } from 'socket.io';
 import dotenv    from 'dotenv';
+import { createClient } from 'redis';
 import axios     from 'axios';
 import bookingRoutes  from './routes/booking.routes';
 import internalRoutes from './routes/internal.routes';
@@ -15,6 +16,7 @@ import {
   createLogger,
   createRequestContextMiddleware,
 } from '@serveease/shared/utils';
+import { setBookingLockClient } from './controllers/booking.controller';
 
 dotenv.config();
 
@@ -65,6 +67,11 @@ const start = async () => {
   log.info({ fn: 'start', action: 'STARTUP' }, 'MongoDB connected');
 
   await connectRabbitMQ(process.env.RABBITMQ_URL || 'amqp://localhost:5672');
+
+  const lockClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+  await lockClient.connect();
+  setBookingLockClient(lockClient as any);
+  log.info({ fn: 'start', action: 'STARTUP' }, 'Redis lock client connected');
 
   server.listen(PORT, () => log.info({ fn: 'start', action: 'STARTUP' }, 'Booking service started', { port: PORT, websocket: true }));
 };

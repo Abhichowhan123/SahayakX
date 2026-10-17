@@ -1,7 +1,7 @@
 import { Request, Response }  from 'express';
 import { WorkerModel }        from '../models/worker.model';
 import { uploadToS3 }         from '../utils/s3';
-import { encrypt, createLogger }            from '@serveease/shared/utils';
+import { encrypt, createLogger, addOnlineWorker, removeOnlineWorker, setRedisGeoClient } from '@serveease/shared/utils';
 import { success, failure, getPaginationParams } from '@serveease/shared/utils';
 import { VerificationStatus }   from '@serveease/shared/types';
 
@@ -178,6 +178,12 @@ export const updateLocation = async (req: Request, res: Response): Promise<void>
     );
     log.db(ctx, 'WorkerModel.findOneAndUpdate (location)', { longitude, latitude });
 
+    const worker = await WorkerModel.findOne({ phone });
+    if (worker?.isOnline) {
+      await addOnlineWorker(worker._id.toString(), latitude, longitude);
+      log.info(ctx, 'Worker GEO position updated in Redis', { workerId: worker._id, latitude, longitude });
+    }
+
     log.info(ctx, 'Worker location updated');
     res.json(success(null, 'Location updated'));
   } catch (err) {
@@ -212,6 +218,17 @@ export const toggleOnline = async (req: Request, res: Response): Promise<void> =
     worker.isOnline = isOnline;
     await worker.save();
     log.db(ctx, 'WorkerModel.save (isOnline toggled)', { isOnline: worker.isOnline });
+
+    const coords = (worker.location as any)?.coordinates || [0, 0];
+    const lng = coords[0];
+    const lat = coords[1];
+    if (isOnline) {
+      await addOnlineWorker(worker._id.toString(), lat, lng);
+      log.info(ctx, 'Worker added to Redis GEO online set', { workerId: worker._id, lat, lng });
+    } else {
+      await removeOnlineWorker(worker._id.toString());
+      log.info(ctx, 'Worker removed from Redis GEO online set', { workerId: worker._id });
+    }
 
     log.info(ctx, isOnline ? 'Worker went online' : 'Worker went offline', { isOnline: worker.isOnline });
     res.json(success({ isOnline: worker.isOnline }, isOnline ? 'You are now online' : 'You are now offline'));

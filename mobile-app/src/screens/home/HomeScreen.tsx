@@ -9,7 +9,12 @@ import { RootStackParamList }        from '../../navigation';
 import { useAuth }                   from '../../context/AuthContext';
 import {
   SERVICE_CATEGORIES, CONSTRUCTION_SUBTYPES,
-  TEACHER_SUBJECTS, COLORS, SPACING, BORDER_RADIUS, FONTS,
+  TEACHER_SUBTYPES, GARDEN_SUBTYPES, ELECTRICIAN_SUBTYPES,
+  PLUMBER_SUBTYPES, MAID_SUBTYPES, GYM_SUBTYPES,
+  COOK_SUBTYPES, DRIVER_SUBTYPES, PEST_SUBTYPES,
+  AC_SUBTYPES, BABYSITTER_SUBTYPES, PET_CARE_SUBTYPES,
+  SERVICE_SUBTYPES_MAP,
+  COLORS, SPACING, BORDER_RADIUS, FONTS,
 } from '../../constants';
 import { userApi } from '../../api';
 
@@ -41,7 +46,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   const handleCategoryPress = (cat: typeof SERVICE_CATEGORIES[0]) => {
     if (cat.hasSubTypes) {
-      const options = cat.id === 'construction' ? CONSTRUCTION_SUBTYPES : TEACHER_SUBJECTS;
+      const options = SERVICE_SUBTYPES_MAP[cat.id] || [];
       setSubTypeModal({ category: cat, options });
     } else {
       navigation.navigate('WorkerList', { category: cat.id, categoryLabel: cat.label });

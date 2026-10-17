@@ -7,7 +7,7 @@ import {
 import * as Location from 'expo-location';
 import { userApi, workerApi } from '../../api';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { COLORS, SPACING, BORDER_RADIUS, FONTS, SERVICE_SUBTYPES_MAP } from '../../constants';
 
 // ─── Config types ─────────────────────────────────────────────────────────────
 type FieldType = 'multi' | 'single' | 'toggle' | 'number';
@@ -39,14 +39,14 @@ const TOTAL_STEPS   = 5;
 const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   house_maid: {
     subTypesLabel: 'Services Offered',
-    subTypes: ['Cooking', 'Cleaning', 'Laundry', 'Dishwashing', 'Elder Care', 'Child Care', 'Deep Cleaning'],
+    subTypes: SERVICE_SUBTYPES_MAP.house_maid,
     extras: [
       { key: 'workType', label: 'Work Type', type: 'single', options: ['Full-time', 'Part-time', 'Live-in'] },
     ],
   },
   garden_work: {
     subTypesLabel: 'Specialization',
-    subTypes: ['Lawn Mowing', 'Landscaping', 'Plant Care', 'Tree Trimming', 'Irrigation Setup', 'Terrace Garden'],
+    subTypes: SERVICE_SUBTYPES_MAP.garden_work,
     extras: [
       { key: 'gardenType', label: 'Garden Type', type: 'multi',  options: ['Home Garden', 'Terrace', 'Farm', 'Large Estate'] },
       { key: 'ownTools',   label: 'I have my own tools',         type: 'toggle' },
@@ -54,7 +54,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   construction: {
     subTypesLabel: 'Specialization',
-    subTypes: ['Masonry', 'Carpentry', 'Painting', 'Flooring', 'Tiling', 'Roofing', 'Plastering', 'Demolition', 'Welding'],
+    subTypes: SERVICE_SUBTYPES_MAP.construction,
     extras: [
       { key: 'workType',     label: 'Work Type',     type: 'multi', options: ['New Construction', 'Renovation', 'Repair'] },
       { key: 'projectScale', label: 'Project Scale', type: 'multi', options: ['Residential', 'Commercial'] },
@@ -62,7 +62,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   electrician: {
     subTypesLabel: 'Specialization',
-    subTypes: ['Wiring', 'Appliance Repair', 'Switchboard', 'CCTV Installation', 'Home Automation', 'Solar Panel'],
+    subTypes: SERVICE_SUBTYPES_MAP.electrician,
     extras: [
       { key: 'workScale', label: 'Work Scale',                      type: 'multi',  options: ['Residential', 'Commercial', 'Industrial'] },
       { key: 'licensed',  label: 'I have a valid electrician license', type: 'toggle' },
@@ -71,15 +71,14 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   plumber: {
     subTypesLabel: 'Specialization',
-    subTypes: ['Pipe Fitting', 'Leak Repair', 'Bathroom Fitting', 'Water Heater', 'Drainage', 'Bore Well'],
+    subTypes: SERVICE_SUBTYPES_MAP.plumber,
     extras: [
       { key: 'emergency', label: 'Available for emergencies (24x7)', type: 'toggle' },
     ],
   },
   home_teacher: {
     subTypesLabel: 'Subjects',
-    subTypes: ['Mathematics', 'Science', 'English', 'Hindi', 'Physics', 'Chemistry', 'Biology',
-               'History', 'Geography', 'Economics', 'Commerce', 'Computer', 'Art', 'Music', 'Dance'],
+    subTypes: SERVICE_SUBTYPES_MAP.home_teacher,
     extras: [
       { key: 'grades',      label: 'Classes / Grades',        type: 'multi',  options: ['1–5', '6–8', '9–10', '11–12', 'Graduation', 'JEE/NEET', 'UPSC/Govt Exams'] },
       { key: 'boards',      label: 'Boards',                  type: 'multi',  options: ['CBSE', 'ICSE', 'State Board', 'IB'] },
@@ -90,7 +89,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   gym_trainer: {
     subTypesLabel: 'Specialization',
-    subTypes: ['Weight Training', 'Yoga', 'Zumba', 'Cardio', 'CrossFit', 'Pilates', 'Boxing', 'Calisthenics', 'Nutrition Coaching'],
+    subTypes: SERVICE_SUBTYPES_MAP.gym_trainer,
     extras: [
       { key: 'goalFocus',        label: 'Goal Focus',        type: 'multi',  options: ['Weight Loss', 'Muscle Building', 'Rehabilitation', 'Sports Fitness'] },
       { key: 'trainingLocation', label: 'Training Location', type: 'multi',  options: ['Home Visit', 'Gym', 'Park', 'Online'] },
@@ -100,7 +99,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   cook: {
     subTypesLabel: 'Cuisine',
-    subTypes: ['North Indian', 'South Indian', 'Bengali', 'Punjabi', 'Chinese', 'Continental', 'Italian', 'Baking', 'Biryani'],
+    subTypes: SERVICE_SUBTYPES_MAP.cook,
     extras: [
       { key: 'dietType',      label: 'Diet Type',    type: 'multi',  options: ['Veg Only', 'Non-veg', 'Jain', 'All Types'] },
       { key: 'mealService',   label: 'Meal Service', type: 'multi',  options: ['Breakfast', 'Lunch', 'Dinner', 'Full Day', 'Tiffin Service'] },
@@ -109,7 +108,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   driver: {
     subTypesLabel: 'Service Type',
-    subTypes: ['Personal Driver', 'School Van', 'Outstation', 'Airport Drop', 'Delivery', 'Cab'],
+    subTypes: SERVICE_SUBTYPES_MAP.driver,
     extras: [
       { key: 'licenseType',   label: 'License Type',          type: 'multi',  options: ['LMV (Car/Jeep)', 'HMV (Truck/Bus)'] },
       { key: 'hasOwnVehicle', label: 'I have my own vehicle', type: 'toggle' },
@@ -118,7 +117,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   pest_control: {
     subTypesLabel: 'Pest Types Handled',
-    subTypes: ['Cockroach', 'Termite', 'Rodent/Rat', 'Bed Bugs', 'Mosquito', 'Ants', 'Bees/Wasps', 'General Fumigation'],
+    subTypes: SERVICE_SUBTYPES_MAP.pest_control,
     extras: [
       { key: 'treatment',    label: 'Treatment Method', type: 'multi', options: ['Chemical', 'Herbal/Organic'] },
       { key: 'propertyType', label: 'Property Type',    type: 'multi', options: ['Residential', 'Commercial', 'Industrial'] },
@@ -126,7 +125,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   ac_technician: {
     subTypesLabel: 'Services',
-    subTypes: ['Installation', 'Repair', 'Cleaning/Service', 'Gas Refilling', 'Uninstallation'],
+    subTypes: SERVICE_SUBTYPES_MAP.ac_technician,
     extras: [
       { key: 'acTypes', label: 'AC Types',           type: 'multi', options: ['Window', 'Split', 'Cassette', 'Central', 'Industrial'] },
       { key: 'brands',  label: 'Brands Experienced', type: 'multi', options: ['LG', 'Samsung', 'Voltas', 'Daikin', 'Hitachi', 'Blue Star', 'Carrier', 'Panasonic'] },
@@ -134,7 +133,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   babysitter: {
     subTypesLabel: 'Age Groups',
-    subTypes: ['Newborn (0–1y)', 'Toddler (1–3y)', 'Preschool (3–5y)', 'School-age (5–12y)'],
+    subTypes: SERVICE_SUBTYPES_MAP.babysitter,
     extras: [
       { key: 'services', label: 'Services',                         type: 'multi',  options: ['Feeding', 'Bathing', 'Educational Activities', 'Nighttime Care', 'Homework Help'] },
       { key: 'liveIn',   label: 'Available as live-in babysitter',  type: 'toggle' },
@@ -143,7 +142,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
   pet_care: {
     subTypesLabel: 'Services',
-    subTypes: ['Dog Walking', 'Grooming', 'Pet Sitting/Boarding', 'Training', 'Vet Assistance', 'Aquarium Care'],
+    subTypes: SERVICE_SUBTYPES_MAP.pet_care,
     extras: [
       { key: 'animals',      label: 'Animals Handled',          type: 'multi', options: ['Dogs', 'Cats', 'Birds', 'Fish', 'Rabbits', 'Reptiles'] },
       { key: 'dogSize',      label: 'Dog Size (if applicable)', type: 'multi', options: ['Small', 'Medium', 'Large'] },
