@@ -7,12 +7,15 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList }        from '../../navigation';
 import { useAuth }                   from '../../context/AuthContext';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { useTheme }                  from '../../context/ThemeContext';
+import { colors }                    from '../../theme/theme';
+import { SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'Phone'> };
 
 export default function PhoneScreen({ navigation }: Props) {
   const { sendOtp } = useAuth();
+  const { colors: themeColors } = useTheme();
   const [phone,         setPhone]         = useState('');
   const [role,          setRole]          = useState<'customer' | 'worker'>('customer');
   const [loading,       setLoading]       = useState(false);
@@ -73,7 +76,6 @@ export default function PhoneScreen({ navigation }: Props) {
     } catch (err: any) {
       const msg: string = err?.response?.data?.message || '';
       if (msg.toLowerCase().includes('already registered')) {
-        // Already registered — log them in directly
         try {
           const result = await sendOtp(cleaned, role, 'login');
           navigation.navigate('Otp', { phone: cleaned, role, mode: 'login', devOtp: result?.devOtp });
@@ -89,13 +91,13 @@ export default function PhoneScreen({ navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: themeColors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>ServeEase</Text>
-          <Text style={styles.tagline}>Home services at your doorstep</Text>
+          <Text style={[styles.logo, { color: themeColors.primary }]}>ServeEase</Text>
+          <Text style={[styles.tagline, { color: themeColors.textSecondary }]}>Home services at your doorstep</Text>
         </View>
 
         {/* Role selector */}
@@ -103,7 +105,7 @@ export default function PhoneScreen({ navigation }: Props) {
           {(['customer', 'worker'] as const).map((r) => (
             <TouchableOpacity
               key={r}
-              style={[styles.roleBtn, role === r && styles.roleBtnActive]}
+              style={[styles.roleBtn, role === r && { backgroundColor: themeColors.primary + '10' }]}
               onPress={() => { setRole(r); setError(''); setNotRegistered(false); }}
             >
               <Text style={[styles.roleBtnText, role === r && styles.roleBtnTextActive]}>
@@ -114,55 +116,55 @@ export default function PhoneScreen({ navigation }: Props) {
         </View>
 
         {/* Phone input */}
-        <Text style={styles.label}>Enter your mobile number</Text>
-        <View style={styles.inputWrapper}>
-          <Text style={styles.flag}>🇮🇳 +91</Text>
+        <Text style={[styles.label, { color: themeColors.textPrimary }]}>Enter your mobile number</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: themeColors.inputBg }]}>
+          <Text style={[styles.flag, { color: themeColors.textPrimary }]}>🇮🇳 +91</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: themeColors.textPrimary }]}
             value={phone}
             onChangeText={(v) => { setPhone(v); setError(''); setNotRegistered(false); }}
             placeholder="98765 43210"
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor={themeColors.textMuted}
             keyboardType="phone-pad"
             maxLength={15}
           />
         </View>
 
-        <Text style={styles.hint}>We'll send a 6-digit OTP to verify your number</Text>
+        <Text style={[styles.hint, { color: themeColors.textMuted }]}>We'll send a 6-digit OTP to verify your number</Text>
 
         {/* Error message */}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={[styles.error, { color: themeColors.error }]}>{error}</Text> : null}
 
         {/* Send OTP / Create Account primary button */}
         {notRegistered ? (
           <TouchableOpacity
-            style={styles.createAccountBtn}
+            style={[styles.createAccountBtn, { backgroundColor: themeColors.success }]}
             onPress={handleCreateAccount}
             disabled={loading}
           >
             {loading
-              ? <ActivityIndicator color={COLORS.white} />
-              : <Text style={styles.createAccountText}>Create Account & Send OTP</Text>}
+              ? <ActivityIndicator color={themeColors.white} />
+              : <Text style={[styles.createAccountText, { color: themeColors.white }]}>Create Account & Send OTP</Text>}
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.btn} onPress={handleSend} disabled={loading}>
+          <TouchableOpacity style={[styles.btn, { backgroundColor: themeColors.primary }]} onPress={handleSend} disabled={loading}>
             {loading
-              ? <ActivityIndicator color={COLORS.white} />
-              : <Text style={styles.btnText}>Send OTP</Text>}
+              ? <ActivityIndicator color={themeColors.white} />
+              : <Text style={[styles.btnText, { color: themeColors.white }]}>Send OTP</Text>}
           </TouchableOpacity>
         )}
 
         {/* Always visible create account link */}
         {!notRegistered && (
           <TouchableOpacity style={styles.createAccountLink} onPress={handleCreateAccount} disabled={loading}>
-            <Text style={styles.createAccountLinkText}>New user? <Text style={styles.createAccountLinkBold}>Create Account</Text></Text>
+            <Text style={[styles.createAccountLinkText, { color: themeColors.textMuted }]}>New user? <Text style={[styles.createAccountLinkBold, { color: themeColors.primary }]}>Create Account</Text></Text>
           </TouchableOpacity>
         )}
 
-        <Text style={styles.terms}>
+        <Text style={[styles.terms, { color: themeColors.textMuted }]}>
           By continuing you agree to our{' '}
-          <Text style={styles.link}>Terms of Service</Text> and{' '}
-          <Text style={styles.link}>Privacy Policy</Text>
+          <Text style={[styles.link, { color: themeColors.primary }]}>Terms of Service</Text> and{' '}
+          <Text style={[styles.link, { color: themeColors.primary }]}>Privacy Policy</Text>
         </Text>
 
       </ScrollView>
@@ -171,29 +173,28 @@ export default function PhoneScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container:         { flex: 1, backgroundColor: COLORS.white },
+  container:         { flex: 1 },
   scroll:            { flexGrow: 1, padding: SPACING.lg, justifyContent: 'center' },
   header:            { alignItems: 'center', marginBottom: SPACING.xxl },
-  logo:              { fontSize: FONTS.sizes.xxl, fontWeight: '800', color: COLORS.primary },
-  tagline:           { fontSize: FONTS.sizes.base, color: COLORS.textSecondary, marginTop: SPACING.xs },
+  logo:              { fontSize: FONTS.sizes.xxl, fontWeight: '800' },
+  tagline:           { fontSize: FONTS.sizes.base, marginTop: SPACING.xs },
   roleRow:           { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.lg },
-  roleBtn:           { flex: 1, padding: SPACING.md, borderRadius: BORDER_RADIUS.md, borderWidth: 2, borderColor: COLORS.border, alignItems: 'center' },
-  roleBtnActive:     { borderColor: COLORS.primary, backgroundColor: COLORS.primary + '10' },
-  roleBtnText:       { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, fontWeight: '600' },
-  roleBtnTextActive: { color: COLORS.primary },
-  label:             { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  inputWrapper:      { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.inputBg, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, marginBottom: SPACING.sm },
-  flag:              { fontSize: FONTS.sizes.base, marginRight: SPACING.sm, color: COLORS.textPrimary },
-  input:             { flex: 1, fontSize: FONTS.sizes.lg, paddingVertical: SPACING.md, color: COLORS.textPrimary, letterSpacing: 1 },
-  hint:              { fontSize: FONTS.sizes.sm, color: COLORS.textMuted, marginBottom: SPACING.lg },
-  error:             { color: 'red', fontSize: FONTS.sizes.sm, marginBottom: SPACING.sm, textAlign: 'center' },
-  btn:               { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md + 2, alignItems: 'center', marginBottom: SPACING.lg },
-  btnText:           { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.white },
-  createAccountBtn:      { backgroundColor: COLORS.success || '#22c55e', borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md + 2, alignItems: 'center', marginBottom: SPACING.md },
-  createAccountText:     { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.white },
+  roleBtn:           { flex: 1, padding: SPACING.md, borderRadius: BORDER_RADIUS.md, borderWidth: 2, alignItems: 'center' },
+  roleBtnText:       { fontSize: FONTS.sizes.sm, fontWeight: '600' },
+  roleBtnTextActive: { fontWeight: '700' },
+  label:             { fontSize: FONTS.sizes.md, fontWeight: '700', marginBottom: SPACING.sm },
+  inputWrapper:      { flexDirection: 'row', alignItems: 'center', borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, marginBottom: SPACING.sm },
+  flag:              { fontSize: FONTS.sizes.base, marginRight: SPACING.sm },
+  input:             { flex: 1, fontSize: FONTS.sizes.lg, paddingVertical: SPACING.md, letterSpacing: 1 },
+  hint:              { fontSize: FONTS.sizes.sm, marginBottom: SPACING.lg },
+  error:             { fontSize: FONTS.sizes.sm, marginBottom: SPACING.sm, textAlign: 'center' },
+  btn:               { borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md + 2, alignItems: 'center', marginBottom: SPACING.lg },
+  btnText:           { fontSize: FONTS.sizes.md, fontWeight: '700' },
+  createAccountBtn:      { borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md + 2, alignItems: 'center', marginBottom: SPACING.md },
+  createAccountText:     { fontSize: FONTS.sizes.md, fontWeight: '700' },
   createAccountLink:     { alignItems: 'center', marginBottom: SPACING.lg },
-  createAccountLinkText: { fontSize: FONTS.sizes.sm, color: COLORS.textMuted },
-  createAccountLinkBold: { color: COLORS.primary, fontWeight: '700' },
-  terms:                 { fontSize: FONTS.sizes.xs, color: COLORS.textMuted, textAlign: 'center', lineHeight: 18 },
-  link:              { color: COLORS.primary, fontWeight: '600' },
+  createAccountLinkText: { fontSize: FONTS.sizes.sm },
+  createAccountLinkBold: { fontWeight: '700' },
+  terms:                 { fontSize: FONTS.sizes.xs, textAlign: 'center', lineHeight: 18 },
+  link:              { fontWeight: '600' },
 });

@@ -7,7 +7,9 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 import { userApi } from '../../api';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
@@ -24,6 +26,7 @@ interface Address {
 
 export default function AddressesScreen() {
   const navigation = useNavigation<Nav>();
+  const { colors: themeColors } = useTheme();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -76,31 +79,31 @@ export default function AddressesScreen() {
   };
 
   const renderItem = ({ item }: { item: Address }) => (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: themeColors.cardBg }]}>
       <View style={styles.cardHeader}>
-        <Text style={styles.label}>{item.label || 'Home'}</Text>
+        <Text style={[styles.label, { color: themeColors.textPrimary }]}>{item.label || 'Home'}</Text>
         <TouchableOpacity onPress={() => item._id && handleDelete(item._id)}>
-          <Text style={styles.delete}>Delete</Text>
+          <Text style={[styles.delete, { color: themeColors.error }]}>Delete</Text>
         </TouchableOpacity>
       </View>
-      <Text style={styles.addr}>{item.line1}</Text>
-      {item.line2 && <Text style={styles.addr}>{item.line2}</Text>}
-      <Text style={styles.addr}>{item.city}, {item.state} - {item.pincode}</Text>
-      <Text style={styles.addr}>{item.country}</Text>
+      <Text style={[styles.addr, { color: themeColors.textSecondary }]}>{item.line1}</Text>
+      {item.line2 && <Text style={[styles.addr, { color: themeColors.textSecondary }]}>{item.line2}</Text>}
+      <Text style={[styles.addr, { color: themeColors.textSecondary }]}>{item.city}, {item.state} - {item.pincode}</Text>
+      <Text style={[styles.addr, { color: themeColors.textSecondary }]}>{item.country}</Text>
     </View>
   );
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+    return <View style={[styles.center, { backgroundColor: themeColors.background }]}><ActivityIndicator size="large" color={themeColors.primary} /></View>;
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>←</Text>
+          <Text style={[styles.back, { color: themeColors.textPrimary }]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Manage Addresses</Text>
+        <Text style={[styles.title, { color: themeColors.textPrimary }]}>Manage Addresses</Text>
         <View style={{ width: 32 }} />
       </View>
 
@@ -109,31 +112,31 @@ export default function AddressesScreen() {
         keyExtractor={(item, idx) => item._id || String(idx)}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.empty}>No addresses added yet</Text>}
+        ListEmptyComponent={<Text style={[styles.empty, { color: themeColors.textMuted }]}>No addresses added yet</Text>}
       />
 
-      <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-        <Text style={styles.addBtnText}>+ Add New Address</Text>
+      <TouchableOpacity style={[styles.addBtn, { backgroundColor: themeColors.primary }]} onPress={() => setModalVisible(true)}>
+        <Text style={[styles.addBtnText, { color: themeColors.white }]}>+ Add New Address</Text>
       </TouchableOpacity>
 
       <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Address</Text>
-            <TextInput style={styles.input} placeholder="Label (e.g., Home, Work)" value={form.label} onChangeText={(v) => setForm({...form, label: v})} placeholderTextColor={COLORS.textMuted} />
-            <TextInput style={styles.input} placeholder="Address Line 1 *" value={form.line1} onChangeText={(v) => setForm({...form, line1: v})} placeholderTextColor={COLORS.textMuted} />
-            <TextInput style={styles.input} placeholder="Address Line 2" value={form.line2} onChangeText={(v) => setForm({...form, line2: v})} placeholderTextColor={COLORS.textMuted} />
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.surface }]}>
+            <Text style={[styles.modalTitle, { color: themeColors.textPrimary }]}>Add Address</Text>
+            <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary }]} placeholder="Label (e.g., Home, Work)" value={form.label} onChangeText={(v) => setForm({...form, label: v})} placeholderTextColor={themeColors.textMuted} />
+            <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary }]} placeholder="Address Line 1 *" value={form.line1} onChangeText={(v) => setForm({...form, line1: v})} placeholderTextColor={themeColors.textMuted} />
+            <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary }]} placeholder="Address Line 2" value={form.line2} onChangeText={(v) => setForm({...form, line2: v})} placeholderTextColor={themeColors.textMuted} />
             <View style={styles.row}>
-              <TextInput style={[styles.input, styles.inputHalf]} placeholder="City *" value={form.city} onChangeText={(v) => setForm({...form, city: v})} placeholderTextColor={COLORS.textMuted} />
-              <TextInput style={[styles.input, styles.inputHalf]} placeholder="State *" value={form.state} onChangeText={(v) => setForm({...form, state: v})} placeholderTextColor={COLORS.textMuted} />
+              <TextInput style={[styles.input, styles.inputHalf, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary }]} placeholder="City *" value={form.city} onChangeText={(v) => setForm({...form, city: v})} placeholderTextColor={themeColors.textMuted} />
+              <TextInput style={[styles.input, styles.inputHalf, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary }]} placeholder="State *" value={form.state} onChangeText={(v) => setForm({...form, state: v})} placeholderTextColor={themeColors.textMuted} />
             </View>
-            <TextInput style={styles.input} placeholder="Pincode *" value={form.pincode} onChangeText={(v) => setForm({...form, pincode: v})} keyboardType="numeric" placeholderTextColor={COLORS.textMuted} />
+            <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary }]} placeholder="Pincode *" value={form.pincode} onChangeText={(v) => setForm({...form, pincode: v})} keyboardType="numeric" placeholderTextColor={themeColors.textMuted} />
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+              <TouchableOpacity style={[styles.cancelBtn, { borderColor: themeColors.border }]} onPress={() => setModalVisible(false)}>
+                <Text style={[styles.cancelBtnText, { color: themeColors.textPrimary }]}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleAdd}>
-                <Text style={styles.saveBtnText}>Save</Text>
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: themeColors.primary }]} onPress={handleAdd}>
+                <Text style={[styles.saveBtnText, { color: themeColors.white }]}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -144,29 +147,29 @@ export default function AddressesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACING.md, backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  back: { fontSize: 24, color: COLORS.textPrimary, width: 32 },
-  title: { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.textPrimary },
-  list: { padding: SPACING.md },
-  card: { backgroundColor: COLORS.white, padding: SPACING.md, borderRadius: BORDER_RADIUS.lg, marginBottom: SPACING.sm },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.xs },
-  label: { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.textPrimary },
-  delete: { fontSize: FONTS.sizes.xs, color: COLORS.error, fontWeight: '600' },
-  addr: { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, marginBottom: 2 },
-  empty: { textAlign: 'center', color: COLORS.textMuted, marginTop: 50 },
-  addBtn: { backgroundColor: COLORS.primary, margin: SPACING.md, padding: SPACING.md, borderRadius: BORDER_RADIUS.full, alignItems: 'center' },
-  addBtnText: { color: COLORS.white, fontWeight: '700' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: COLORS.white, padding: SPACING.lg, borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl },
-  modalTitle: { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.md },
-  input: { backgroundColor: COLORS.inputBg, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.sm, color: COLORS.textPrimary },
-  row: { flexDirection: 'row', gap: SPACING.sm },
-  inputHalf: { flex: 1 },
-  modalActions: { flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm },
-  cancelBtn: { flex: 1, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center' },
-  cancelBtnText: { color: COLORS.textPrimary, fontWeight: '600' },
-  saveBtn: { flex: 1, backgroundColor: COLORS.primary, padding: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center' },
-  saveBtnText: { color: COLORS.white, fontWeight: '700' },
+  safe:        { flex: 1 },
+  center:      { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1 },
+  back:        { fontSize: 24, width: 32 },
+  title:       { fontSize: FONTS.sizes.md, fontWeight: '700' },
+  list:        { padding: 16 },
+  card:        { padding: 16, borderRadius: BORDER_RADIUS.lg, marginBottom: 8 },
+  cardHeader:  { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  label:       { fontSize: FONTS.sizes.sm, fontWeight: '700' },
+  delete:      { fontSize: FONTS.sizes.xs, fontWeight: '600' },
+  addr:        { fontSize: FONTS.sizes.sm, marginBottom: 2 },
+  empty:       { textAlign: 'center', marginTop: 50 },
+  addBtn:      { margin: 16, padding: 16, borderRadius: BORDER_RADIUS.full, alignItems: 'center' },
+  addBtnText:  { fontWeight: '700' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+  modalContent: { padding: 24, borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl },
+  modalTitle:  { fontSize: FONTS.sizes.md, fontWeight: '700', marginBottom: 16 },
+  input:       { padding: 12, borderRadius: BORDER_RADIUS.md, marginBottom: 12 },
+  row:         { flexDirection: 'row', gap: 8 },
+  inputHalf:   { flex: 1 },
+  modalActions:{ flexDirection: 'row', gap: 8, marginTop: 12 },
+  cancelBtn:   { flex: 1, borderWidth: 1, padding: 12, borderRadius: BORDER_RADIUS.md, alignItems: 'center' },
+  cancelBtnText:{ fontWeight: '600' },
+  saveBtn:     { flex: 1, padding: 12, borderRadius: BORDER_RADIUS.md, alignItems: 'center' },
+  saveBtnText: { fontWeight: '700' },
 });

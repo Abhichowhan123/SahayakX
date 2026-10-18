@@ -56,7 +56,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
 
     await BookingModel.create({
       bookingId, customerId, workerId: '', serviceCategory, serviceSubType,
-      status: BookingStatus.SEARCHING,
+      status: BookingStatus.SEARCHING, dispatchedTo: [],
       pricing: { workerQuotedPrice, customerOfferedPrice, finalAgreedPrice, platformFee, tax, totalAmount, currency: 'INR' },
       schedule: { requestedDate, requestedTimeSlot, estimatedDuration, expiresAt: new Date(Date.now() + CANCELLATION_RULES.workerAcceptanceTimeoutSeconds * 1000) },
       location: { customerAddress, ...(geoLocation && { geo: geoLocation }) },
@@ -65,11 +65,10 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
     });
     log.db(ctx, 'BookingModel.create', { bookingId, totalAmount, status: BookingStatus.SEARCHING });
 
-    publishEvent(QueueName.BOOKING_CREATED, {
-      bookingId, customerId, workerId: '', serviceCategory, totalAmount,
-      customerPhone: customerId, workerPhone: '',
-    });
-    log.info(ctx, 'BOOKING_CREATED event published', { bookingId, totalAmount });
+    // NOTE: BOOKING_CREATED event no longer sends a worker SMS here because no
+    // worker is assigned at creation time (workerPhone would be empty). Workers
+    // are notified via the BOOKING_DISPATCHED event in dispatchWave instead.
+    log.info(ctx, 'Booking created; worker notified via BOOKING_DISPATCHED event', { bookingId, totalAmount });
 
     // Dispatch to nearby workers in waves
     await dispatchWave(bookingId, location);
@@ -138,6 +137,13 @@ export const dispatchWave = async (bookingId: string, location?: { lat: number; 
       customerPhone: booking.customerId, serviceCategory: booking.serviceCategory,
       lat, lng, radiusKm,
     });
+
+    // Persist the dispatched worker IDs so workers can discover this request
+    // even if the push/SMS notification doesn't reach them.
+    booking.dispatchedTo = nearbyWorkerIds;
+    await booking.save();
+    log.db(ctx, 'BookingModel.save (dispatchedTo persisted)', { bookingId, dispatchedTo: nearbyWorkerIds });
+
     log.info(ctx, 'BOOKING_DISPATCHED event published', { bookingId, workerCount: nearbyWorkerIds.length, workerIds: nearbyWorkerIds });
   } catch (err) {
     log.error({ ...ctx, tag: 'bookingService_dispatchWave_failed' }, 'dispatchWave failed', err);
@@ -428,7 +434,45 @@ export const getMyBookings = async (req: Request, res: Response): Promise<void> 
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (err) {
-    log.error({ ...ctx, tag: 'bookingService_getMyBookings_failed' }, 'getMyBookings handler failed', err);
+    log.error({ ...ctx, tag: 'getMyBookings_failed' }, 'getMyBookings handler failed', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+};
+
+// ─── GET /bookings/available — Available booking requests for workers ──────────
+// Returns SEARCHING bookings (not yet accepted) that a worker can browse and
+// accept. Optional ?category= filter matches the worker's service category.
+export const getAvailableBookings = async (req: Request, res: Response): Promise<void> => {
+  const user               = (req as any).user;
+  const { page, limit, skip } = getPaginationParams(req.query as any);
+  const { category }       = req.query;
+  const ctx = { fn: 'getAvailableBookings', tag: 'bookingService_getAvailableBookings', userId: user.phone, role: user.role, action: 'GET_AVAILABLE_BOOKINGS' };
+  log.enter(ctx, { page, limit, category });
+
+  if (user.role !== 'worker') {
+    res.status(403).json(failure('Only workers can view available booking requests'));
+    return;
+  }
+
+  try {
+    const filter: Record<string, unknown> = {
+      status:   BookingStatus.SEARCHING,
+      workerId: '', // not yet accepted by any worker
+    };
+    if (category) filter.serviceCategory = category;
+
+    const [bookings, total] = await Promise.all([
+      BookingModel.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      BookingModel.countDocuments(filter),
+    ]);
+    log.db(ctx, 'BookingModel.find + countDocuments (available)', { total, returned: bookings.length, page, limit, category });
+
+    res.json({
+      ...success(bookings, 'Available booking requests fetched'),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    log.error({ ...ctx, tag: 'getAvailableBookings_failed' }, 'getAvailableBookings handler failed', err);
     res.status(500).json(failure('Internal server error'));
   }
 };

@@ -228,6 +228,9 @@ export const bookingApi = {
   getMyBookings:  (params?: { status?: string; page?: number }) =>
     api.get('/bookings', { params }),
 
+  getAvailable:   (params?: { category?: string; page?: number }) =>
+    api.get('/bookings/available', { params }),
+
   getById:        (bookingId: string) => api.get(`/bookings/${bookingId}`),
   accept:         (bookingId: string) => api.put(`/bookings/${bookingId}/accept`),
   enRoute:        (bookingId: string) => api.put(`/bookings/${bookingId}/en-route`),

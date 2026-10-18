@@ -6,10 +6,15 @@ import { adminLogger } from '../utils/logger';
 export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:80';
 adminLogger.info({ fn: 'init', action: 'STARTUP' }, 'Admin API client initializing', { baseUrl: BASE_URL });
 
-const getToken = () =>
-  Platform.OS === 'web'
-    ? Promise.resolve(localStorage.getItem('admin_token'))
-    : SecureStore.getItemAsync('admin_token');
+const getToken = async () => {
+  const token = Platform.OS === 'web'
+    ? await Promise.resolve(localStorage.getItem('admin_token'))
+    : await SecureStore.getItemAsync('admin_token');
+  if (!token || token === 'undefined' || token === 'null') {
+    return null;
+  }
+  return token;
+};
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -77,10 +82,15 @@ export const adminApi = {
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────
-const getUserToken = () =>
-  Platform.OS === 'web'
-    ? Promise.resolve(localStorage.getItem('user_token'))
-    : SecureStore.getItemAsync('user_token');
+const getUserToken = async () => {
+  const token = Platform.OS === 'web'
+    ? await Promise.resolve(localStorage.getItem('user_token'))
+    : await SecureStore.getItemAsync('user_token');
+  if (!token || token === 'undefined' || token === 'null') {
+    return null;
+  }
+  return token;
+};
 
 export const userApi = {
   getProfile:  () => getUserToken().then(t => api.get('/users/me', { headers: t ? { Authorization: `Bearer ${t}` } : {} })),
@@ -89,39 +99,41 @@ export const userApi = {
 
 // ─── Catalog ──────────────────────────────────────────────────────────────────
 export const catalogApi = {
-  getCategories: () => api.get('/catalog/categories'),
-  getPricing:    () => api.get('/catalog/pricing'),
-};
-
-// ─── Workers ──────────────────────────────────────────────────────────────────
-export const workerApi = {
-  search: (category: string, lat = 28.6139, lng = 77.2090) =>
-    api.get('/workers', { params: { category, lat, lng, maxDistanceKm: 10 } }),
-  getById: (id: string) => api.get(`/workers/${id}`),
+  listCategories:      () => api.get('/catalog/categories'),
+  listSubCategories:   (categoryId: string) => api.get(`/catalog/subcategories?categoryId=${categoryId}`),
+  searchSubCategories: (q: string) => api.get(`/catalog/subcategories/search?q=${encodeURIComponent(q)}`),
 };
 
 // ─── Bookings ─────────────────────────────────────────────────────────────────
 export const bookingApi = {
-  getMyBookings: (status?: string) =>
-    api.get('/bookings', { params: { status } }),
-  getById:       (id: string)      => api.get(`/bookings/${id}`),
-  cancel:        (id: string)      => api.post(`/bookings/${id}/cancel`),
+  create:             (data: any) => api.post('/bookings', data),
+  myBookings:         (role: 'customer' | 'worker') => api.get(`/bookings/me?role=${role}`),
+  get:                (id: string) => api.get(`/bookings/${id}`),
+  cancel:             (id: string, reason: string) => api.post(`/bookings/${id}/cancel`, { reason }),
+  startWork:          (id: string) => api.post(`/bookings/${id}/start`),
+  complete:           (id: string) => api.post(`/bookings/${id}/complete`),
+  raiseDispute:       (id: string, reason: string) => api.post(`/bookings/${id}/dispute`, { reason }),
+  respondToOffer:     (id: string, accept: boolean, price?: number) => api.post(`/bookings/${id}/respond-offer`, { accept, price }),
+  requestExtension:   (id: string, minutes: number, reason: string) => api.post(`/bookings/${id}/request-extension`, { minutes, reason }),
+  respondExtension:   (id: string, accept: boolean) => api.post(`/bookings/${id}/respond-extension`, { accept }),
+  markArrived:        (id: string) => api.post(`/bookings/${id}/arrived`),
+  review:             (id: string, data: any) => api.post(`/bookings/${id}/review`, data),
 };
 
-// ─── Payments ─────────────────────────────────────────────────────────────────
-export const paymentApi = {
-  getHistory: () => getUserToken().then(t => api.get('/payments/history', { headers: t ? { Authorization: `Bearer ${t}` } : {} })),
+// ─── Workers ──────────────────────────────────────────────────────────────────
+export const workerApi = {
+  nearMe:             (category: string, lat: number, lng: number, radiusKm = 10) =>
+    api.get(`/workers/near?category=${category}&lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`),
+  get:                (id: string) => api.get(`/workers/${id}`),
+  register:           (data: any) => api.post('/workers/register', data),
+  getMe:              () => api.get('/workers/me'),
+  updateMe:           (data: any) => api.put('/workers/me', data),
+  uploadId:           (form: FormData) => api.post('/workers/me/id-proof', form, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadAadhaar:      (form: FormData) => api.post('/workers/me/aadhaar', form, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadSelfie:       (form: FormData) => api.post('/workers/me/selfie', form, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateLocation:     (lat: number, lng: number) => api.put('/workers/me/location', { lat, lng }),
+  getEarnings:        () => api.get('/workers/me/earnings'),
+  getBookings:        (status?: string) => api.get(`/workers/me/bookings${status ? '?status=' + status : ''}`),
+  goOnline:           (lat: number, lng: number) => api.post('/workers/me/online', { lat, lng }),
+  goOffline:          () => api.post('/workers/me/offline'),
 };
-
-// ─── Reviews ──────────────────────────────────────────────────────────────────
-export const reviewApi = {
-  getWorkerReviews: (workerId: string) =>
-    api.get(`/reviews/worker/${workerId}`),
-};
-
-// ─── Health ───────────────────────────────────────────────────────────────────
-export const healthApi = {
-  check: () => axios.get(`${BASE_URL}/health`, { timeout: 5000 }),
-};
-
-export default api;

@@ -9,7 +9,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 import { userApi, workerApi } from '../../api';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS, SERVICE_SUBTYPES_MAP } from '../../constants';
+import { SPACING, BORDER_RADIUS, FONTS, SERVICE_SUBTYPES_MAP } from '../../constants';
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/theme';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'EditProfile'> };
 
@@ -192,6 +194,7 @@ function buildSkills(catCfg: CategoryConfig | undefined, extraFields: Record<str
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function EditProfileScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const { colors: themeColors } = useTheme();
   const isWorker = user?.role === 'worker';
 
   // Basic
@@ -351,7 +354,7 @@ export default function EditProfileScreen({ navigation }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={themeColors.primary} />
       </View>
     );
   }
@@ -364,14 +367,14 @@ export default function EditProfileScreen({ navigation }: Props) {
           <Text style={styles.heading}>Edit Profile</Text>
           <Text style={styles.label}>Full Name</Text>
           <TextInput style={styles.input} value={fullName} onChangeText={setFullName}
-            placeholder="Enter your full name" placeholderTextColor={COLORS.textMuted} />
+            placeholder="Enter your full name" placeholderTextColor={colors.textMuted} />
           <Text style={styles.label}>Email</Text>
           <TextInput style={styles.input} value={email} onChangeText={setEmail}
-            placeholder="Enter your email" placeholderTextColor={COLORS.textMuted}
+            placeholder="Enter your email" placeholderTextColor={colors.textMuted}
             keyboardType="email-address" autoCapitalize="none" />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-            {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
+            {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -391,10 +394,10 @@ export default function EditProfileScreen({ navigation }: Props) {
         <Text style={styles.sectionTitle}>Basic Info</Text>
         <Text style={styles.label}>Full Name *</Text>
         <TextInput style={styles.input} value={fullName} onChangeText={setFullName}
-          placeholder="Your full name" placeholderTextColor={COLORS.textMuted} />
+          placeholder="Your full name" placeholderTextColor={colors.textMuted} />
         <Text style={styles.label}>Bio</Text>
         <TextInput style={[styles.input, styles.multiline]} value={bio} onChangeText={setBio}
-          placeholder="Tell customers about yourself" placeholderTextColor={COLORS.textMuted}
+          placeholder="Tell customers about yourself" placeholderTextColor={colors.textMuted}
           multiline numberOfLines={3} />
 
         {/* ── Category ── */}
@@ -433,10 +436,10 @@ export default function EditProfileScreen({ navigation }: Props) {
         <Text style={styles.sectionTitle}>Experience & Rate</Text>
         <Text style={styles.label}>Years of Experience *</Text>
         <TextInput style={styles.input} value={experience} onChangeText={setExperience}
-          placeholder="e.g. 3" placeholderTextColor={COLORS.textMuted} keyboardType="numeric" />
+          placeholder="e.g. 3" placeholderTextColor={colors.textMuted} keyboardType="numeric" />
         <Text style={styles.label}>Hourly Rate (₹) *</Text>
         <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate}
-          placeholder="e.g. 300" placeholderTextColor={COLORS.textMuted} keyboardType="numeric" />
+          placeholder="e.g. 300" placeholderTextColor={colors.textMuted} keyboardType="numeric" />
 
         {/* ── Category-specific extras ── */}
         {catConfig && catConfig.extras.length > 0 && (
@@ -488,7 +491,7 @@ export default function EditProfileScreen({ navigation }: Props) {
                     value={extraNumbers[field.key] || ''}
                     onChangeText={v => setExtraNumbers(n => ({ ...n, [field.key]: v }))}
                     placeholder="Enter number"
-                    placeholderTextColor={COLORS.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
                   />
                 )}
@@ -546,18 +549,18 @@ export default function EditProfileScreen({ navigation }: Props) {
           value={serviceArea}
           onChangeText={setServiceArea}
           placeholder="e.g. Koramangala, Bangalore"
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor={colors.textMuted}
         />
         <TouchableOpacity style={styles.gpsBtn} onPress={handleGetLocation} disabled={locationLoading}>
           {locationLoading
-            ? <ActivityIndicator size="small" color={COLORS.primary} />
+            ? <ActivityIndicator size="small" color={themeColors.primary} />
             : <Text style={styles.gpsBtnText}>📍 Detect My Location</Text>}
         </TouchableOpacity>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-          {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
+          {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -569,30 +572,30 @@ export default function EditProfileScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe:              { flex: 1, backgroundColor: COLORS.background },
+  safe:              { flex: 1, backgroundColor: colors.background },
   center:            { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content:           { padding: SPACING.lg },
-  heading:           { fontSize: FONTS.sizes.xl, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.lg },
-  sectionTitle:      { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginTop: SPACING.lg, marginBottom: SPACING.sm },
-  label:             { fontSize: FONTS.sizes.sm, fontWeight: '600', color: COLORS.textSecondary, marginBottom: SPACING.xs },
-  input:             { backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, fontSize: FONTS.sizes.base, color: COLORS.textPrimary, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
+  heading:           { fontSize: FONTS.sizes.xl, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACING.lg },
+  sectionTitle:      { fontSize: FONTS.sizes.sm, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginTop: SPACING.lg, marginBottom: SPACING.sm },
+  label:             { fontSize: FONTS.sizes.sm, fontWeight: '600', color: colors.textSecondary, marginBottom: SPACING.xs },
+  input:             { backgroundColor: colors.inputBg, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, fontSize: FONTS.sizes.base, color: colors.textPrimary, marginBottom: SPACING.md, borderWidth: 1, borderColor: colors.border },
   multiline:         { height: 90, textAlignVertical: 'top' },
   chipsWrap:         { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginBottom: SPACING.md },
-  chip:              { paddingHorizontal: SPACING.sm, paddingVertical: 6, borderRadius: BORDER_RADIUS.full, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.white },
-  chipActive:        { borderColor: COLORS.primary, backgroundColor: COLORS.primary + '15' },
-  chipText:          { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, fontWeight: '500' },
-  chipTextActive:    { color: COLORS.primary, fontWeight: '700' },
+  chip:              { paddingHorizontal: SPACING.sm, paddingVertical: 6, borderRadius: BORDER_RADIUS.full, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.inputBg },
+  chipActive:        { borderColor: colors.primary, backgroundColor: colors.primary + '15' },
+  chipText:          { fontSize: FONTS.sizes.sm, color: colors.textSecondary, fontWeight: '500' },
+  chipTextActive:    { color: colors.primary, fontWeight: '700' },
   extraBlock:        { marginBottom: SPACING.sm },
   toggleRow:         { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
-  toggleBtn:         { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, borderWidth: 1.5, borderColor: COLORS.border, alignItems: 'center', backgroundColor: COLORS.white },
-  toggleBtnActive:   { borderColor: COLORS.primary, backgroundColor: COLORS.primary + '15' },
-  toggleBtnText:     { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, fontWeight: '600' },
-  toggleBtnTextActive: { color: COLORS.primary },
-  gpsBtn:            { borderWidth: 1.5, borderColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.sm, alignItems: 'center', marginBottom: SPACING.md },
-  gpsBtnText:        { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.primary },
-  error:             { color: COLORS.error, fontSize: FONTS.sizes.sm, marginBottom: SPACING.md, textAlign: 'center' },
-  saveBtn:           { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center', marginBottom: SPACING.sm },
-  saveBtnText:       { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.white },
+  toggleBtn:         { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.inputBg },
+  toggleBtnActive:   { borderColor: colors.primary, backgroundColor: colors.primary + '15' },
+  toggleBtnText:     { fontSize: FONTS.sizes.sm, color: colors.textSecondary, fontWeight: '600' },
+  toggleBtnTextActive: { color: colors.primary },
+  gpsBtn:            { borderWidth: 1.5, borderColor: colors.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.sm, alignItems: 'center', marginBottom: SPACING.md },
+  gpsBtnText:        { fontSize: FONTS.sizes.sm, fontWeight: '700', color: colors.primary },
+  error:             { color: colors.error, fontSize: FONTS.sizes.sm, marginBottom: SPACING.md, textAlign: 'center' },
+  saveBtn:           { backgroundColor: colors.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center', marginBottom: SPACING.sm },
+  saveBtnText:       { fontSize: FONTS.sizes.base, fontWeight: '700', color: colors.white },
   cancelBtn:         { borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
-  cancelBtnText:     { fontSize: FONTS.sizes.base, fontWeight: '600', color: COLORS.textSecondary },
+  cancelBtnText:     { fontSize: FONTS.sizes.base, fontWeight: '600', color: colors.textSecondary },
 });

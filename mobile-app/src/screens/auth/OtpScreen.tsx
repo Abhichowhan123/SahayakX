@@ -7,7 +7,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp }                 from '@react-navigation/native';
 import { AuthStackParamList }        from '../../navigation';
 import { useAuth }                   from '../../context/AuthContext';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { useTheme }                  from '../../context/ThemeContext';
+import { colors }                    from '../../theme/theme';
+import { SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Otp'>;
@@ -19,6 +21,7 @@ const OTP_LENGTH = 6;
 export default function OtpScreen({ navigation, route }: Props) {
   const { phone, role, mode, devOtp } = route.params;
   const { verifyOtp, sendOtp } = useAuth();
+  const { colors: themeColors } = useTheme();
 
   const [digits,    setDigits]    = useState<string[]>(
     devOtp ? devOtp.split('') : Array(OTP_LENGTH).fill(''),
@@ -54,7 +57,6 @@ export default function OtpScreen({ navigation, route }: Props) {
     setLoading(true);
     try {
       await verifyOtp(phone, code);
-      // Navigation handled by AuthContext → navigator re-renders
     } catch (err: any) {
       Alert.alert('Invalid OTP', err?.response?.data?.message || 'Please check the code and try again.');
       setDigits(Array(OTP_LENGTH).fill(''));
@@ -83,20 +85,20 @@ export default function OtpScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
-        <Text style={styles.backText}>← Back</Text>
+        <Text style={[styles.backText, { color: themeColors.primary }]}>← Back</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Enter OTP</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.title, { color: themeColors.textPrimary }]}>Enter OTP</Text>
+      <Text style={[styles.subtitle, { color: themeColors.textSecondary }]}>
         We sent a {OTP_LENGTH}-digit code to{'\n'}
-        <Text style={styles.phone}>{phone}</Text>
+        <Text style={[styles.phone, { color: themeColors.textPrimary }]}>{phone}</Text>
       </Text>
 
       {devOtp ? (
-        <View style={styles.devBanner}>
-          <Text style={styles.devBannerText}>🛠 DEV MODE — OTP: {devOtp}</Text>
+        <View style={[styles.devBanner, { borderColor: '#FFC107' }]}>
+          <Text style={[styles.devBannerText, { color: '#856404' }]}>🛠 DEV MODE — OTP: {devOtp}</Text>
         </View>
       ) : null}
 
@@ -106,7 +108,7 @@ export default function OtpScreen({ navigation, route }: Props) {
           <TextInput
             key={i}
             ref={(r) => { refs.current[i] = r; }}
-            style={[styles.otpBox, d ? styles.otpBoxFilled : null]}
+            style={[styles.otpBox, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }, d ? { backgroundColor: themeColors.primary + '10', borderColor: themeColors.primary } : null]}
             value={d}
             onChangeText={(v) => handleChange(v, i)}
             onKeyPress={(e) => handleKeyPress(e, i)}
@@ -118,19 +120,19 @@ export default function OtpScreen({ navigation, route }: Props) {
       </View>
 
       {/* Verify button */}
-      <TouchableOpacity style={styles.btn} onPress={() => handleVerify()} disabled={loading}>
+      <TouchableOpacity style={[styles.btn, { backgroundColor: themeColors.primary }]} onPress={() => handleVerify()} disabled={loading}>
         {loading
-          ? <ActivityIndicator color={COLORS.white} />
-          : <Text style={styles.btnText}>Verify & Continue</Text>}
+          ? <ActivityIndicator color={themeColors.white} />
+          : <Text style={[styles.btnText, { color: themeColors.white }]}>Verify & Continue</Text>}
       </TouchableOpacity>
 
       {/* Resend */}
       <View style={styles.resendRow}>
         {countdown > 0 ? (
-          <Text style={styles.resendHint}>Resend OTP in <Text style={styles.timer}>{countdown}s</Text></Text>
+          <Text style={[styles.resendHint, { color: themeColors.textMuted }]}>Resend OTP in <Text style={[styles.timer, { color: themeColors.primary }]}>{countdown}s</Text></Text>
         ) : (
           <TouchableOpacity onPress={handleResend} disabled={resending}>
-            <Text style={styles.resendLink}>{resending ? 'Sending...' : 'Resend OTP'}</Text>
+            <Text style={[styles.resendLink, { color: themeColors.primary }]}>{resending ? 'Sending...' : 'Resend OTP'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -139,21 +141,20 @@ export default function OtpScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: COLORS.white, padding: SPACING.lg, paddingTop: 60 },
+  container:    { flex: 1, padding: SPACING.lg, paddingTop: 60 },
   back:         { marginBottom: SPACING.lg },
-  backText:     { fontSize: FONTS.sizes.base, color: COLORS.primary, fontWeight: '600' },
-  title:        { fontSize: FONTS.sizes.xxl, fontWeight: '800', color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  subtitle:     { fontSize: FONTS.sizes.base, color: COLORS.textSecondary, marginBottom: SPACING.xl, lineHeight: 24 },
-  phone:        { fontWeight: '700', color: COLORS.textPrimary },
+  backText:     { fontSize: FONTS.sizes.base, fontWeight: '600' },
+  title:        { fontSize: FONTS.sizes.xxl, fontWeight: '800', marginBottom: SPACING.sm },
+  subtitle:     { fontSize: FONTS.sizes.base, marginBottom: SPACING.xl, lineHeight: 24 },
+  phone:        { fontWeight: '700' },
   otpRow:       { flexDirection: 'row', gap: SPACING.sm, justifyContent: 'center', marginBottom: SPACING.xl },
-  otpBox:       { width: 48, height: 56, borderRadius: BORDER_RADIUS.md, borderWidth: 2, borderColor: COLORS.border, fontSize: FONTS.sizes.xl, textAlign: 'center', fontWeight: '700', color: COLORS.textPrimary, backgroundColor: COLORS.inputBg },
-  otpBoxFilled: { borderColor: COLORS.primary, backgroundColor: COLORS.primary + '10' },
-  btn:          { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md + 2, alignItems: 'center', marginBottom: SPACING.md },
-  btnText:      { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.white },
+  otpBox:       { width: 48, height: 56, borderRadius: BORDER_RADIUS.md, borderWidth: 2, fontSize: FONTS.sizes.xl, textAlign: 'center', fontWeight: '700' },
+  btn:          { borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md + 2, alignItems: 'center', marginBottom: SPACING.md },
+  btnText:      { fontSize: FONTS.sizes.md, fontWeight: '700' },
   resendRow:    { alignItems: 'center' },
-  resendHint:   { fontSize: FONTS.sizes.sm, color: COLORS.textMuted },
-  timer:        { fontWeight: '700', color: COLORS.primary },
-  resendLink:   { fontSize: FONTS.sizes.sm, color: COLORS.primary, fontWeight: '700' },
-  devBanner:    { backgroundColor: '#FFF3CD', borderRadius: BORDER_RADIUS.md, padding: SPACING.sm, marginBottom: SPACING.md, alignItems: 'center', borderWidth: 1, borderColor: '#FFC107' },
-  devBannerText:{ fontSize: FONTS.sizes.sm, fontWeight: '700', color: '#856404' },
+  resendHint:   { fontSize: FONTS.sizes.sm },
+  timer:        { fontWeight: '700' },
+  resendLink:   { fontSize: FONTS.sizes.sm, fontWeight: '700' },
+  devBanner:    { backgroundColor: '#FFF3CD', borderRadius: BORDER_RADIUS.md, padding: SPACING.sm, marginBottom: SPACING.md, alignItems: 'center', borderWidth: 1 },
+  devBannerText:{ fontSize: FONTS.sizes.sm, fontWeight: '700' },
 });

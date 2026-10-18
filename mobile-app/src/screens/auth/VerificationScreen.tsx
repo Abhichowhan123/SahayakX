@@ -6,9 +6,12 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { workerApi } from '../../api';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/theme';
+import { SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
 export default function VerificationScreen({ navigation }: any) {
+  const { colors: themeColors } = useTheme();
   const [aadhaarFront, setAadhaarFront] = useState<any>(null);
   const [aadhaarBack, setAadhaarBack] = useState<any>(null);
   const [selfie, setSelfie] = useState<any>(null);
@@ -61,43 +64,45 @@ export default function VerificationScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.white }} contentContainerStyle={{ padding: SPACING.lg }}>
+    <ScrollView style={[styles.container, { backgroundColor: themeColors.background }]} contentContainerStyle={{ padding: SPACING.lg }}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: SPACING.md }}>
-        <Text style={{ fontSize: 18, color: COLORS.primary }}>← Back</Text>
+        <Text style={[styles.back, { color: themeColors.primary }]}>← Back</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>Worker Verification</Text>
-      <Text style={styles.subtitle}>Upload Aadhaar card and selfie for verification</Text>
+      <Text style={[styles.title, { color: themeColors.textPrimary }]}>Worker Verification</Text>
+      <Text style={[styles.subtitle, { color: themeColors.textSecondary }]}>Upload Aadhaar card and selfie for verification</Text>
 
-      <Text style={styles.label}>Aadhaar Number</Text>
-      <TextInput style={styles.input} value={aadhaarNumber} onChangeText={setAadhaarNumber} placeholder="1234 5678 9012" />
+      <Text style={[styles.label, { color: themeColors.textSecondary }]}>Aadhaar Number</Text>
+      <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={aadhaarNumber} onChangeText={setAadhaarNumber} placeholder="1234 5678 9012" />
 
-      <TouchableOpacity style={styles.btn} onPress={() => pickImage(setAadhaarFront)}>
-        <Text style={styles.btnText}>{aadhaarFront ? '✓ Aadhaar Front Uploaded' : 'Upload Aadhaar Front'}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.btn} onPress={() => pickImage(setAadhaarBack)}>
-        <Text style={styles.btnText}>{aadhaarBack ? '✓ Aadhaar Back Uploaded' : 'Upload Aadhaar Back'}</Text>
+      <TouchableOpacity style={[styles.btn, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border }]} onPress={() => pickImage(setAadhaarFront)}>
+        <Text style={[styles.btnText, { color: themeColors.textPrimary }]}>{aadhaarFront ? '✓ Aadhaar Front Uploaded' : 'Upload Aadhaar Front'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.btn} onPress={() => pickImage(setSelfie)}>
-        <Text style={styles.btnText}>{selfie ? '✓ Selfie Uploaded' : 'Upload Selfie'}</Text>
+      <TouchableOpacity style={[styles.btn, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border }]} onPress={() => pickImage(setAadhaarBack)}>
+        <Text style={[styles.btnText, { color: themeColors.textPrimary }]}>{aadhaarBack ? '✓ Aadhaar Back Uploaded' : 'Upload Aadhaar Back'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.submitBtn, submitting && styles.disabled]} onPress={handleSubmit} disabled={submitting}>
-        {submitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitText}>Submit for Verification</Text>}
+      <TouchableOpacity style={[styles.btn, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border }]} onPress={() => pickImage(setSelfie)}>
+        <Text style={[styles.btnText, { color: themeColors.textPrimary }]}>{selfie ? '✓ Selfie Uploaded' : 'Upload Selfie'}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[styles.submitBtn, { backgroundColor: themeColors.primary }, submitting && styles.disabled]} onPress={handleSubmit} disabled={submitting}>
+        {submitting ? <ActivityIndicator color={themeColors.white} /> : <Text style={[styles.submitText, { color: themeColors.white }]}>Submit for Verification</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: FONTS.sizes.xl, fontWeight: '800', color: COLORS.textPrimary, marginBottom: SPACING.xs },
-  subtitle: { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, marginBottom: SPACING.lg },
-  label: { fontSize: FONTS.sizes.sm, fontWeight: '600', color: COLORS.textSecondary, marginBottom: SPACING.xs },
-  input: { backgroundColor: COLORS.inputBg, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
-  btn: { backgroundColor: COLORS.inputBg, borderWidth: 1, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, alignItems: 'center', marginBottom: SPACING.md },
-  btnText: { fontSize: FONTS.sizes.base, fontWeight: '600', color: COLORS.textPrimary },
-  submitBtn: { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, padding: SPACING.md, alignItems: 'center', marginTop: SPACING.lg },
-  submitText: { color: COLORS.white, fontSize: FONTS.sizes.md, fontWeight: '700' },
+  container: { flex: 1 },
+  back: { fontSize: 18 },
+  title: { fontSize: FONTS.sizes.xl, fontWeight: '800', marginBottom: SPACING.xs },
+  subtitle: { fontSize: FONTS.sizes.sm, marginBottom: SPACING.lg },
+  label: { fontSize: FONTS.sizes.sm, fontWeight: '600', marginBottom: SPACING.xs },
+  input: { borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.md, borderWidth: 1 },
+  btn: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, alignItems: 'center', marginBottom: SPACING.md },
+  btnText: { fontSize: FONTS.sizes.base, fontWeight: '600' },
+  submitBtn: { borderRadius: BORDER_RADIUS.full, padding: SPACING.md, alignItems: 'center', marginTop: SPACING.lg },
+  submitText: { fontSize: FONTS.sizes.md, fontWeight: '700' },
   disabled: { opacity: 0.6 },
 });

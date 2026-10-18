@@ -1,15 +1,96 @@
-// ─── Theme ────────────────────────────────────────────────────────────────────
-// Premium dark-and-lime marketplace palette per design_guidelines.json.
-// Obsidian surfaces (#121316, #1A1C23) with electric lime (#84CC16) accents.
-// Zero blue/purple hues.
+// ─── Design tokens (ServeEase — light + dark palettes) ─────────────────────────
+// Obsidian surfaces + electric lime accent. Zero blue/purple.
+
+export const COLORS = {
+  // Dark theme
+  bg:              '#121317',
+  surface:         '#1B1C22',
+  surfaceBorder:   '#2A2B33',
+  accent:          '#95C93D',
+  accentDarkText:  '#101114',
+  accentLabel:     '#3F5A14',
+  accentTile:      '#232B14',
+  textPrimary:     '#FFFFFF',
+  textSecondary:   '#9A9CA8',
+  iconInactive:    '#A0A2AE',
+  tileNeutral:     '#262830',
+  danger:          '#E5484D',
+  // Service icon colors (always on accent-tile background)
+  iconCleaning:    '#95C93D',
+  iconAcRepair:    '#4FB3F5',
+  iconPlumbing:    '#F0A23C',
+  iconGarden:      '#5FBF6A',
+  starIcon:        '#9A9CA8',
+  // Light theme (cream)
+  lightBg:         '#F5F3EE',
+  lightSurface:    '#FFFFFF',
+  lightSurfaceBorder: '#E5E7EB',
+  lightTextPrimary: '#1A1A1A',
+  lightTextSecondary: '#6B7280',
+  lightIconInactive: '#9CA3AF',
+  lightTileNeutral: '#F3F4F6',
+};
+
+export const FONT_SIZE = {
+  screenTitle:   34,
+  sectionTitle:  24,
+  eyebrow:       14,
+  labelLimeCard: 14,
+  bigAmount:     44,
+  cardTitle:     17,
+  body:          14,
+  sectionHelper: 15,
+  bottomNavLabel: 13,
+  statusPill:    16,
+  phone:         16,
+  verifiedText:  14,
+} as const;
+
+export const FONT_WEIGHT = {
+  screenTitle:   '800',
+  sectionTitle:  '800',
+  eyebrow:       '800',
+  labelLimeCard: '800',
+  bigAmount:     '900',
+  cardTitle:     '700',
+  body:          '400',
+  sectionHelper: '400',
+  bottomNavLabel:'700',
+  statusPill:    '700',
+  verifiedText:  '700',
+} as const;
+
+export const RADIUS = {
+  bigCard:    32,
+  normalCard: 24,
+  searchBar:  20,
+  iconTile:   18,
+  iconTileBig: 22,
+  button:     20,
+  statusPill: 9999,
+  pill:       9999,
+  bottomNav:  28,
+  avatar:     30,
+};
+
+export const SPACING = {
+  screenH:  18,
+  blockGap: 18,
+};
+
+export const FONT_FAMILY = 'System';
+
+// ─── Theme palettes ───────────────────────────────────────────────────────────
 export type ThemeName = 'light' | 'dark';
 
 export interface ThemeColors {
   primary:        string;
   primaryDark:    string;
   primaryLight:   string;
+  accentTile:     string;
   background:     string;
   surface:        string;
+  surfaceSecondary: string;
   white:          string;
   black:          string;
   textPrimary:    string;
@@ -24,50 +105,55 @@ export interface ThemeColors {
   shadow:         string;
 }
 
-const lime = '#84CC16';
-const limeDark = '#65A30D';
-
-export const LIGHT_THEME: ThemeColors = {
-  primary:        lime,
-  primaryDark:    limeDark,
-  primaryLight:   '#A3E635',
-  background:     '#F4F5F7',
-  surface:        '#FFFFFF',
-  white:          '#FFFFFF',
-  black:          '#121316',
-  textPrimary:    '#121316',
-  textSecondary:  '#9BA1AF',
-  textMuted:      '#6B7280',
-  border:         '#272A35',
-  error:          '#EF4444',
-  success:        '#22C55E',
-  warning:        '#F59E0B',
-  cardBg:         '#FFFFFF',
-  inputBg:        '#1A1C23',
-  shadow:         '#000000',
+const DARK: ThemeColors = {
+  primary:        COLORS.accent,
+  primaryDark:    '#6B8A2E',
+  primaryLight:   '#B8D96E',
+  accentTile:     COLORS.accentTile,
+  background:     COLORS.bg,
+  surface:        COLORS.surface,
+  surfaceSecondary: COLORS.surface,
+  white:          COLORS.textPrimary,
+  black:          COLORS.accentDarkText,
+  textPrimary:    COLORS.textPrimary,
+  textSecondary:  COLORS.textSecondary,
+  textMuted:      COLORS.iconInactive,
+  border:         COLORS.surfaceBorder,
+  error:          COLORS.danger,
+  success:        COLORS.accent,
+  warning:        COLORS.iconPlumbing,
+  cardBg:         COLORS.surface,
+  inputBg:        COLORS.surface,
+  shadow:         'transparent',
 };
 
-export const DARK_THEME: ThemeColors = {
-  primary:        lime,
-  primaryDark:    limeDark,
-  primaryLight:   '#A3E635',
-  background:     '#121316',
-  surface:        '#1A1C23',
-  white:          '#FFFFFF',
-  black:          '#121316',
-  textPrimary:    '#F4F5F7',
-  textSecondary:  '#9BA1AF',
-  textMuted:      '#6B7280',
-  border:         '#272A35',
-  error:          '#EF4444',
-  success:        '#22C55E',
-  warning:        '#F59E0B',
-  cardBg:         '#1A1C23',
-  inputBg:        '#252833',
+const LIGHT: ThemeColors = {
+  primary:        COLORS.accent,
+  primaryDark:    '#6B8A2E',
+  primaryLight:   '#B8D96E',
+  accentTile:     COLORS.accentTile,
+  background:     COLORS.lightBg,
+  surface:        COLORS.lightSurface,
+  surfaceSecondary: COLORS.lightSurface,
+  white:          COLORS.lightTextPrimary,
+  black:          COLORS.accentDarkText,
+  textPrimary:    COLORS.lightTextPrimary,
+  textSecondary:  COLORS.lightTextSecondary,
+  textMuted:      COLORS.lightIconInactive,
+  border:         COLORS.lightSurfaceBorder,
+  error:          COLORS.danger,
+  success:        COLORS.accent,
+  warning:        COLORS.iconPlumbing,
+  cardBg:         COLORS.lightSurface,
+  inputBg:        COLORS.lightTileNeutral,
   shadow:         '#000000',
 };
 
 export const THEMES: Record<ThemeName, ThemeColors> = {
-  light: LIGHT_THEME,
-  dark:  DARK_THEME,
+  light: LIGHT,
+  dark:  DARK,
 };
+
+// Module-level stylesheet default (dark). Dynamic per-component styling uses
+// `themeColors` from useTheme() which follows the light/dark toggle.
+export const colors = DARK;

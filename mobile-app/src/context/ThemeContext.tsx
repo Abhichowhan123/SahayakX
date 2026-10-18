@@ -17,32 +17,32 @@ const storage = {
 };
 
 interface ThemeContextType {
-  theme:   ThemeName;
-  colors:  ThemeColors;
-  setTheme:(next: ThemeName) => void;
+  scheme:   ThemeName;
+  colors:   ThemeColors;
+  setTheme: (next: ThemeName) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setThemeState] = useState<ThemeName>('light');
+  const [scheme, setScheme] = useState<ThemeName>('dark');
 
   useEffect(() => {
     const restore = async () => {
       try {
         const stored = await storage.get(STORAGE_KEY);
         if (stored === 'light' || stored === 'dark') {
-          setThemeState(stored);
+          setScheme(stored);
         }
       } catch {
-        // fall back to light
+        // fall back to dark
       }
     };
     restore();
   }, []);
 
   const setTheme = useCallback(async (next: ThemeName) => {
-    setThemeState(next);
+    setScheme(next);
     try {
       await storage.set(STORAGE_KEY, next);
     } catch {
@@ -50,10 +50,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const colors = THEMES[theme];
+  const colors = THEMES[scheme];
 
   return (
-    <ThemeContext.Provider value={{ theme, colors, setTheme }}>
+    <ThemeContext.Provider value={{ scheme, colors, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

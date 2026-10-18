@@ -5,6 +5,7 @@ import { createBottomTabNavigator }     from '@react-navigation/bottom-tabs';
 import { Ionicons }                     from '@expo/vector-icons';
 import { ActivityIndicator, View }      from 'react-native';
 import { useAuth }                      from '../context/AuthContext';
+import { useTheme }                     from '../context/ThemeContext';
 import { COLORS }                       from '../constants';
 
 // Auth screens
@@ -60,59 +61,66 @@ const AuthNavigator = () => (
   </Auth.Navigator>
 );
 
-const CustomerTabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor:   COLORS.primary,
-      tabBarInactiveTintColor: COLORS.textMuted,
-      tabBarStyle:             { borderTopColor: COLORS.border, height: 60, paddingBottom: 8 },
-      tabBarIcon: ({ color, size }) => {
-        const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-          Home:     'home-outline',
-          Bookings: 'receipt-outline',
-          Profile:  'person-outline',
-        };
-        return <Ionicons name={icons[route.name] ?? 'ellipse-outline'} size={size} color={color} />;
-      },
-    })}
-  >
+const CustomerTabs = () => {
+  const { colors } = useTheme();
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor:   colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarStyle:             { backgroundColor: colors.surface, borderTopColor: colors.border, height: 60, paddingBottom: 8 },
+        tabBarIcon: ({ color, size }) => {
+          const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
+            Home:     'home-outline',
+            Bookings: 'receipt-outline',
+            Profile:  'person-outline',
+          };
+          return <Ionicons name={icons[route.name] ?? 'ellipse-outline'} size={size} color={color} />;
+        },
+      })}
+    >
     <Tab.Screen name="Home"     component={HomeScreen}           />
     <Tab.Screen name="Bookings" component={BookingHistoryScreen} />
     <Tab.Screen name="Profile"  component={ProfileScreen}        />
   </Tab.Navigator>
-);
+  );
+};
 
-const WorkerTabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor:   COLORS.primary,
-      tabBarInactiveTintColor: COLORS.textMuted,
-      tabBarStyle:             { borderTopColor: COLORS.border, height: 60, paddingBottom: 8 },
-      tabBarIcon: ({ color, size }) => {
-        const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-          Dashboard: 'grid-outline',
-          Bookings:  'receipt-outline',
-          Profile:   'person-outline',
-        };
-        return <Ionicons name={icons[route.name] ?? 'ellipse-outline'} size={size} color={color} />;
-      },
-    })}
-  >
+const WorkerTabs = () => {
+  const { colors } = useTheme();
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor:   colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarStyle:             { backgroundColor: colors.surface, borderTopColor: colors.border, height: 60, paddingBottom: 8 },
+        tabBarIcon: ({ color, size }) => {
+          const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
+            Dashboard: 'grid-outline',
+            Bookings:  'receipt-outline',
+            Profile:   'person-outline',
+          };
+          return <Ionicons name={icons[route.name] ?? 'ellipse-outline'} size={size} color={color} />;
+        },
+      })}
+    >
     <Tab.Screen name="Dashboard" component={WorkerDashboard}       />
     <Tab.Screen name="Bookings"  component={BookingHistoryScreen}  />
     <Tab.Screen name="Profile"   component={ProfileScreen}         />
   </Tab.Navigator>
-);
+  );
+};
 
 export default function AppNavigator() {
   const { user, isLoading, isWorkerMode, needsProfile } = useAuth();
+  const { colors } = useTheme();
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

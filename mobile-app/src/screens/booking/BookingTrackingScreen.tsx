@@ -9,7 +9,9 @@ import { RootStackParamList }        from '../../navigation';
 import { bookingApi }                from '../../api';
 import { io, Socket }                from 'socket.io-client';
 import { appLogger }                 from '../../utils/logger';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { useTheme }                  from '../../context/ThemeContext';
+import { colors }                    from '../../theme/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'BookingTracking'>;
@@ -17,18 +19,19 @@ type Props = {
 };
 
 const STATUS_LABELS: Record<string, { label: string; icon: string; color: string }> = {
-  searching:        { label: 'Looking for worker...',    icon: '🔍', color: COLORS.warning },
-  accepted:         { label: 'Worker accepted!',         icon: '✅', color: COLORS.success },
-  worker_en_route:  { label: 'Worker is on the way',     icon: '🚶', color: COLORS.primary },
-  in_progress:      { label: 'Work in progress',         icon: '🔨', color: COLORS.primary },
-  completed:        { label: 'Job completed!',           icon: '🎉', color: COLORS.success },
-  cancelled_by_customer: { label: 'Cancelled',          icon: '❌', color: COLORS.error },
-  cancelled_by_worker:   { label: 'Worker cancelled',   icon: '❌', color: COLORS.error },
-  expired:          { label: 'Request expired',          icon: '⏱️', color: COLORS.error },
+  searching:        { label: 'Looking for worker...',    icon: '🔍', color: colors.primary },
+  accepted:         { label: 'Worker accepted!',         icon: '✅', color: colors.success },
+  worker_en_route:  { label: 'Worker is on the way',     icon: '🚶', color: colors.primary },
+  in_progress:      { label: 'Work in progress',         icon: '🔨', color: colors.primary },
+  completed:        { label: 'Job completed!',           icon: '🎉', color: colors.success },
+  cancelled_by_customer: { label: 'Cancelled',          icon: '❌', color: colors.error },
+  cancelled_by_worker:   { label: 'Worker cancelled',   icon: '❌', color: colors.error },
+  expired:          { label: 'Request expired',          icon: '⏱️', color: colors.error },
 };
 
 export default function BookingTrackingScreen({ navigation, route }: Props) {
   const { bookingId }   = route.params;
+  const { colors: themeColors } = useTheme();
   const [booking,        setBooking]       = useState<any>(null);
   const [loading,        setLoading]       = useState(true);
   const [otp,            setOtp]           = useState('');
@@ -111,59 +114,59 @@ export default function BookingTrackingScreen({ navigation, route }: Props) {
     ]);
   };
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+  if (loading) return <View style={[styles.center, { backgroundColor: themeColors.background }]}><ActivityIndicator size="large" color={themeColors.primary} /></View>;
   if (!booking) return null;
 
-  const statusInfo = STATUS_LABELS[booking.status] ?? { label: booking.status, icon: '📋', color: COLORS.textSecondary };
+  const statusInfo = STATUS_LABELS[booking.status] ?? { label: booking.status, icon: '📋', color: themeColors.textSecondary };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.back}>←</Text></TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking #{booking.bookingId}</Text>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={[styles.back, { color: themeColors.textPrimary }]}>←</Text></TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Booking #{booking.bookingId}</Text>
         <View style={{ width: 32 }} />
       </View>
 
       {/* Map placeholder (swap for real MapView) */}
-      <View style={styles.mapPlaceholder}>
+      <View style={[styles.mapPlaceholder, { backgroundColor: themeColors.cardBg }]}>
         <Text style={styles.mapIcon}>🗺️</Text>
-        <Text style={styles.mapText}>Live tracking map</Text>
+        <Text style={[styles.mapText, { color: themeColors.textSecondary }]}>Live tracking map</Text>
         {workerLocation && (
-          <Text style={styles.mapCoords}>Worker: {workerLocation.lat.toFixed(4)}, {workerLocation.lng.toFixed(4)}</Text>
+          <Text style={[styles.mapCoords, { color: themeColors.textMuted }]}>Worker: {workerLocation.lat.toFixed(4)}, {workerLocation.lng.toFixed(4)}</Text>
         )}
       </View>
 
       {/* Status card */}
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: themeColors.cardBg }]}>
         <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '20' }]}>
           <Text style={styles.statusIcon}>{statusInfo.icon}</Text>
           <Text style={[styles.statusLabel, { color: statusInfo.color }]}>{statusInfo.label}</Text>
         </View>
 
         {/* Booking details */}
-        <View style={styles.detailRow}><Text style={styles.detailKey}>Service</Text><Text style={styles.detailVal}>{booking.serviceCategory?.replace(/_/g, ' ')}</Text></View>
-        <View style={styles.detailRow}><Text style={styles.detailKey}>Amount</Text><Text style={styles.detailVal}>₹{booking.pricing?.totalAmount}</Text></View>
-        <View style={styles.detailRow}><Text style={styles.detailKey}>Time slot</Text><Text style={styles.detailVal}>{booking.schedule?.requestedTimeSlot}</Text></View>
+        <View style={[styles.detailRow, { borderBottomColor: themeColors.border }]}><Text style={[styles.detailKey, { color: themeColors.textSecondary }]}>Service</Text><Text style={[styles.detailVal, { color: themeColors.textPrimary }]}>{booking.serviceCategory?.replace(/_/g, ' ')}</Text></View>
+        <View style={[styles.detailRow, { borderBottomColor: themeColors.border }]}><Text style={[styles.detailKey, { color: themeColors.textSecondary }]}>Amount</Text><Text style={[styles.detailVal, { color: themeColors.textPrimary }]}>₹{booking.pricing?.totalAmount}</Text></View>
+        <View style={[styles.detailRow, { borderBottomColor: themeColors.border }]}><Text style={[styles.detailKey, { color: themeColors.textSecondary }]}>Time slot</Text><Text style={[styles.detailVal, { color: themeColors.textPrimary }]}>{booking.schedule?.requestedTimeSlot}</Text></View>
 
         {/* OTP input to start work (shown when worker arrives) */}
         {booking.status === 'worker_en_route' && (
           <View style={styles.otpSection}>
-            <Text style={styles.otpTitle}>Share this OTP with your worker to start</Text>
+            <Text style={[styles.otpTitle, { color: themeColors.textSecondary }]}>Share this OTP with your worker to start</Text>
             <View style={styles.otpInputRow}>
               <TextInput
-                style={styles.otpInput}
+                style={[styles.otpInput, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary }]}
                 value={otp}
                 onChangeText={setOtp}
                 placeholder="4-digit OTP"
                 keyboardType="numeric"
                 maxLength={4}
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={themeColors.textMuted}
               />
-              <TouchableOpacity style={styles.otpBtn} onPress={handleStartWork} disabled={otpLoading}>
+              <TouchableOpacity style={[styles.otpBtn, { backgroundColor: themeColors.primary }]} onPress={handleStartWork} disabled={otpLoading}>
                 {otpLoading
-                  ? <ActivityIndicator color={COLORS.white} />
-                  : <Text style={styles.otpBtnText}>Confirm</Text>}
+                  ? <ActivityIndicator color={themeColors.white} />
+                  : <Text style={[styles.otpBtnText, { color: themeColors.white }]}>Confirm</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -171,15 +174,15 @@ export default function BookingTrackingScreen({ navigation, route }: Props) {
 
         {/* Cancel button (only when searching or accepted) */}
         {['searching', 'accepted'].includes(booking.status) && (
-          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
-            <Text style={styles.cancelBtnText}>Cancel Booking</Text>
+          <TouchableOpacity style={[styles.cancelBtn, { borderColor: themeColors.error }]} onPress={handleCancel}>
+            <Text style={[styles.cancelBtnText, { color: themeColors.error }]}>Cancel Booking</Text>
           </TouchableOpacity>
         )}
 
         {/* Review prompt when completed */}
         {booking.status === 'completed' && (
-          <TouchableOpacity style={styles.reviewBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.reviewBtnText}>Rate your experience ★</Text>
+          <TouchableOpacity style={[styles.reviewBtn, { backgroundColor: themeColors.primary }]} onPress={() => navigation.goBack()}>
+            <Text style={[styles.reviewBtnText, { color: themeColors.white }]}>Rate your experience ★</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -188,30 +191,30 @@ export default function BookingTrackingScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe:           { flex: 1, backgroundColor: COLORS.background },
+  safe:           { flex: 1 },
   center:         { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACING.md, backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  back:           { fontSize: 24, color: COLORS.textPrimary, width: 32 },
-  headerTitle:    { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.textPrimary },
-  mapPlaceholder: { height: 220, backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center' },
+  header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACING.md, borderBottomWidth: 1 },
+  back:           { fontSize: 24, width: 32 },
+  headerTitle:    { fontSize: FONTS.sizes.base, fontWeight: '700' },
+  mapPlaceholder: { height: 220, justifyContent: 'center', alignItems: 'center' },
   mapIcon:        { fontSize: 48, marginBottom: SPACING.xs },
-  mapText:        { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary },
-  mapCoords:      { fontSize: FONTS.sizes.xs, color: COLORS.textMuted, marginTop: 4 },
-  card:           { backgroundColor: COLORS.white, margin: SPACING.md, borderRadius: BORDER_RADIUS.lg, padding: SPACING.lg, elevation: 3 },
+  mapText:        { fontSize: FONTS.sizes.sm },
+  mapCoords:      { fontSize: FONTS.sizes.xs, marginTop: 4 },
+  card:           { margin: SPACING.md, borderRadius: BORDER_RADIUS.lg, padding: SPACING.lg, elevation: 3 },
   statusBadge:    { flexDirection: 'row', alignItems: 'center', borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, marginBottom: SPACING.md, alignSelf: 'flex-start', gap: SPACING.xs },
   statusIcon:     { fontSize: FONTS.sizes.md },
   statusLabel:    { fontSize: FONTS.sizes.sm, fontWeight: '700' },
-  detailRow:      { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: SPACING.xs, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  detailKey:      { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary },
-  detailVal:      { fontSize: FONTS.sizes.sm, fontWeight: '600', color: COLORS.textPrimary },
+  detailRow:      { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: SPACING.xs, borderBottomWidth: 1 },
+  detailKey:      { fontSize: FONTS.sizes.sm },
+  detailVal:      { fontSize: FONTS.sizes.sm, fontWeight: '600' },
   otpSection:     { marginTop: SPACING.md },
-  otpTitle:       { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, marginBottom: SPACING.sm, textAlign: 'center' },
+  otpTitle:       { fontSize: FONTS.sizes.sm, marginBottom: SPACING.sm, textAlign: 'center' },
   otpInputRow:    { flexDirection: 'row', gap: SPACING.sm },
-  otpInput:       { flex: 1, backgroundColor: COLORS.inputBg, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, fontSize: FONTS.sizes.xl, textAlign: 'center', letterSpacing: 8, fontWeight: '700', color: COLORS.textPrimary },
-  otpBtn:         { backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.lg, justifyContent: 'center' },
-  otpBtnText:     { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.white },
-  cancelBtn:      { marginTop: SPACING.md, borderWidth: 1, borderColor: COLORS.error, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
-  cancelBtnText:  { fontSize: FONTS.sizes.sm, color: COLORS.error, fontWeight: '600' },
-  reviewBtn:      { marginTop: SPACING.md, backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
-  reviewBtnText:  { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.white },
+  otpInput:       { flex: 1, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, fontSize: FONTS.sizes.xl, textAlign: 'center', letterSpacing: 8, fontWeight: '700' },
+  otpBtn:         { borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.lg, justifyContent: 'center' },
+  otpBtnText:     { fontSize: FONTS.sizes.sm, fontWeight: '700' },
+  cancelBtn:      { marginTop: SPACING.md, borderWidth: 1, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
+  cancelBtnText:  { fontSize: FONTS.sizes.sm, fontWeight: '600' },
+  reviewBtn:      { marginTop: SPACING.md, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
+  reviewBtnText:  { fontSize: FONTS.sizes.sm, fontWeight: '700' },
 });

@@ -29,10 +29,12 @@ interface AuthContextType {
   token:               string | null;
   isLoading:           boolean;
   isWorkerMode:        boolean;
+  isOnline:            boolean;
   needsProfile:        boolean;
   sendOtp:             (phone: string, role?: 'customer' | 'worker', mode?: 'login' | 'register') => Promise<{ devOtp?: string } | null>;
   verifyOtp:           (phone: string, otp: string) => Promise<void>;
   completeProfileSetup:() => void;
+  setOnline:           (v: boolean) => Promise<void>;
   logout:              () => Promise<void>;
   setWorkerMode:       (v: boolean) => void;
 }
@@ -44,6 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token,        setToken]        = useState<string | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
   const [isWorkerMode, setWorkerMode]   = useState(false);
+  const [isOnline,     setIsOnline]     = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
 
   const checkWorkerNeedsProfile = async () => {
@@ -79,6 +82,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser({ phone, role });
           setWorkerMode(role === 'worker');
           setNeedsProfile(role === 'worker' ? await checkWorkerNeedsProfile() : false);
+
+          // Restore worker online status so it survives refreshes and stays
+          // in sync across Dashboard and Profile screens.
+          if (role === 'worker') {
+            try {
+              const { data } = await workerApi.getMyProfile();
+              setIsOnline(!!data.data?.isOnline);
+            } catch {
+              // leave isOnline as false if profile fetch fails
+            }
+          }
         }
       } catch (err) {
         appLogger.error({ fn: 'restore', tag: 'AuthContext_restore_sessionLoad' }, 'Failed to restore session', err);
@@ -175,12 +189,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(null);
     setUser(null);
     setWorkerMode(false);
+    setIsOnline(false);
     setNeedsProfile(false);
     appLogger.info({ fn: 'logout', tag: 'AuthContext_logout_complete' }, 'User logged out');
   };
 
+  const setOnline = async (val: boolean) => {
+    try {
+      await workerApi.toggleOnline(val);
+      setIsOnline(val);
+    } catch (err) {
+      appLogger.error({ fn: 'setOnline', tag: 'AuthContext_setOnline_failed' }, 'Failed to toggle online', err);
+      throw err;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, isWorkerMode, needsProfile, sendOtp, verifyOtp, completeProfileSetup, logout, setWorkerMode }}>
+    <AuthContext.Provider value={{ user, token, isLoading, isWorkerMode, isOnline, needsProfile, sendOtp, verifyOtp, completeProfileSetup, setOnline, logout, setWorkerMode }}>
       {children}
     </AuthContext.Provider>
   );
