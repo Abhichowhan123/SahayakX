@@ -7,7 +7,7 @@ import {
 export interface IBookingDocument extends Document {
   bookingId:       string;
   customerId:      string;   // phone or ObjectId ref
-  workerId:        string;
+  workerId:        string; // empty initially for SEARCHING/dispatch flow
   /** Worker IDs this booking was dispatched to (wave-based notification targets). */
   dispatchedTo:    string[];
   serviceCategory: ServiceCategory;
@@ -68,7 +68,7 @@ export interface IBookingDocument extends Document {
 const BookingSchema = new Schema<IBookingDocument>({
   bookingId:       { type: String, required: true, unique: true, index: true },
   customerId:      { type: String, required: true, index: true },
-  workerId:        { type: String, required: true, index: true },
+  workerId:        { type: String, required: false, default: '', index: true },
   dispatchedTo:    { type: [String], default: [], index: true },
   serviceCategory: { type: String, enum: Object.values(ServiceCategory), required: true },
   serviceSubType:  String,

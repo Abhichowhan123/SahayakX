@@ -173,6 +173,7 @@ services:
     container_name: serveease-booking
     env_file: ./services/booking-service/.env
     environment:
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
       - PORT=3005
       - MONGODB_URI=mongodb://mongo-booking:27017/serveease_bookings
       - REDIS_URL=redis://redis:6379
@@ -269,3 +270,5 @@ services:
       - review-service
       - admin-service
     restart: unless-stopped
+
+  # Add env vars that might be missing

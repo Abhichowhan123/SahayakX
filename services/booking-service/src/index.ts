@@ -15,6 +15,7 @@ import {
   attachRequestIdToAxios,
   createLogger,
   createRequestContextMiddleware,
+  setRedisGeoClient,
 } from '@serveease/shared/utils';
 import { setBookingLockClient } from './controllers/booking.controller';
 
@@ -103,6 +104,12 @@ const start = async () => {
   await lockClient.connect();
   setBookingLockClient(lockClient as any);
   log.info({ fn: 'start', action: 'STARTUP' }, 'Redis lock client connected');
+
+  // Also initialize Redis GEO client for nearby worker lookups
+  const geoClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+  await geoClient.connect();
+  setRedisGeoClient(geoClient as any);
+  log.info({ fn: 'start', action: 'STARTUP' }, 'Redis GEO client connected for dispatch');
 
   // Recover any expired bookings from previous crashes
   await cleanupExpiredBookings();
