@@ -27,6 +27,18 @@ export const getMyProfile = async (req: Request, res: Response): Promise<void> =
     delete (profile.verification as any).aadhaarNumber;
     delete (profile.verification as any).bankAccount;
 
+    // Include non-sensitive verification info so worker can see status and reason
+    (profile as any).verification = {
+      status: (worker.verification as any)?.status,
+      submittedAt: (worker.verification as any)?.submittedAt,
+      verifiedAt: (worker.verification as any)?.verifiedAt,
+      verifiedBy: (worker.verification as any)?.verifiedBy,
+      rejectionReason: (worker.verification as any)?.rejectionReason,
+      aadhaarFrontPhoto: (worker.verification as any)?.aadhaarFrontPhoto,
+      aadhaarBackPhoto: (worker.verification as any)?.aadhaarBackPhoto,
+      selfiePhoto: (worker.verification as any)?.selfiePhoto,
+    };
+
     log.info(ctx, 'Worker profile fetched (sensitive fields stripped)');
     res.json(success(profile));
   } catch (err) {
@@ -152,6 +164,9 @@ export const submitVerification = async (req: Request, res: Response): Promise<v
     if (upiId) worker.verification.bankAccount.upiId = upiId;
     worker.verification.status      = VerificationStatus.PENDING;
     worker.verification.submittedAt = new Date();
+    worker.verification.verifiedAt  = undefined as any;
+    worker.verification.verifiedBy  = undefined as any;
+    worker.verification.rejectionReason = undefined as any;
 
     await worker.save();
     log.db(ctx, 'WorkerModel.save (verification docs saved, status=PENDING)', { submittedAt: worker.verification.submittedAt });
@@ -285,7 +300,7 @@ export const getWorkersByCategory = async (req: Request, res: Response): Promise
     res.status(500).json(failure('Internal server error'));
   }
 };
-
+ 
 // ─── GET /workers/:id ─────────────────────────────────────────────────────────
 export const getWorkerById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;

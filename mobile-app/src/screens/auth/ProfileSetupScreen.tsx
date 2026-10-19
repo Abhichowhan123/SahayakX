@@ -7,7 +7,9 @@ import {
 import * as Location from 'expo-location';
 import { userApi, workerApi } from '../../api';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS, SERVICE_SUBTYPES_MAP } from '../../constants';
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/theme';
+import { SPACING, BORDER_RADIUS, FONTS, SERVICE_SUBTYPES_MAP } from '../../constants';
 
 // ─── Config types ─────────────────────────────────────────────────────────────
 type FieldType = 'multi' | 'single' | 'toggle' | 'number';
@@ -154,6 +156,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function ProfileSetupScreen() {
   const { completeProfileSetup, user } = useAuth();
+  const { colors: themeColors } = useTheme();
   const isWorker = user?.role === 'worker';
 
   // Step nav
@@ -313,8 +316,8 @@ export default function ProfileSetupScreen() {
       {items.map(item => {
         const active = selected.includes(item);
         return (
-          <TouchableOpacity key={item} style={[styles.pill, active && styles.pillActive]} onPress={() => onPress(item)}>
-            <Text style={[styles.pillText, active && styles.pillTextActive]}>{item}</Text>
+          <TouchableOpacity key={item} style={[styles.pill, active && { borderColor: themeColors.primary, backgroundColor: themeColors.primary + '20' }]} onPress={() => onPress(item)}>
+            <Text style={[styles.pillText, active && { color: themeColors.primary, fontWeight: '700' }]}>{item}</Text>
           </TouchableOpacity>
         );
       })}
@@ -324,25 +327,25 @@ export default function ProfileSetupScreen() {
   // ─── Customer form ─────────────────────────────────────────────────────────
   if (!isWorker) {
     return (
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={[styles.container, { backgroundColor: themeColors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.iconBox}><Text style={styles.icon}>👋</Text></View>
-          <Text style={styles.title}>Complete Your Profile</Text>
-          <Text style={styles.subtitle}>Just a couple of details to get started.</Text>
+          <Text style={[styles.title, { color: themeColors.textPrimary }]}>Complete Your Profile</Text>
+          <Text style={[styles.subtitle, { color: themeColors.textSecondary }]}>Just a couple of details to get started.</Text>
 
-          <Text style={styles.label}>Full Name *</Text>
-          <TextInput style={styles.input} value={fullName} onChangeText={setFullName}
-            placeholder="Enter your full name" placeholderTextColor={COLORS.textMuted} autoCapitalize="words" />
+          <Text style={[styles.label, { color: themeColors.textSecondary }]}>Full Name *</Text>
+          <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={fullName} onChangeText={setFullName}
+            placeholder="Enter your full name" placeholderTextColor={themeColors.textMuted} autoCapitalize="words" />
 
-          <Text style={styles.label}>Email (optional)</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail}
-            placeholder="Enter your email" placeholderTextColor={COLORS.textMuted}
+          <Text style={[styles.label, { color: themeColors.textSecondary }]}>Email (optional)</Text>
+          <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={email} onChangeText={setEmail}
+            placeholder="Enter your email" placeholderTextColor={themeColors.textMuted}
             keyboardType="email-address" autoCapitalize="none" />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={[styles.error, { color: themeColors.error }]}>{error}</Text> : null}
 
-          <TouchableOpacity style={styles.btn} onPress={handleSubmit} disabled={saving}>
-            {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.btnText}>Get Started</Text>}
+          <TouchableOpacity style={[styles.btn, { backgroundColor: themeColors.primary }]} onPress={handleSubmit} disabled={saving}>
+            {saving ? <ActivityIndicator color={themeColors.white} /> : <Text style={[styles.btnText, { color: themeColors.white }]}>Get Started</Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -352,30 +355,28 @@ export default function ProfileSetupScreen() {
   // ─── Step content ──────────────────────────────────────────────────────────
   const renderStep = () => {
     switch (step) {
-      // ── Step 1: Basics ────────────────────────────────────────────────────
       case 1:
         return (
           <>
-            <Text style={styles.stepTitle}>👋 Let's set up your profile</Text>
-            <Text style={styles.stepSubtitle}>Tell customers about yourself</Text>
+            <Text style={[styles.stepTitle, { color: themeColors.textPrimary }]}>👋 Let's set up your profile</Text>
+            <Text style={[styles.stepSubtitle, { color: themeColors.textSecondary }]}>Tell customers about yourself</Text>
 
-            <Text style={styles.label}>Full Name *</Text>
-            <TextInput style={styles.input} value={fullName} onChangeText={setFullName}
-              placeholder="Enter your full name" placeholderTextColor={COLORS.textMuted} autoCapitalize="words" />
+            <Text style={[styles.label, { color: themeColors.textSecondary }]}>Full Name *</Text>
+            <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={fullName} onChangeText={setFullName}
+              placeholder="Enter your full name" placeholderTextColor={themeColors.textMuted} autoCapitalize="words" />
 
-            <Text style={styles.label}>About You (optional)</Text>
-            <TextInput style={[styles.input, styles.multiline]} value={bio} onChangeText={setBio}
+            <Text style={[styles.label, { color: themeColors.textSecondary }]}>About You (optional)</Text>
+            <TextInput style={[styles.input, styles.multiline, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={bio} onChangeText={setBio}
               placeholder="Describe your experience and why customers should hire you..."
-              placeholderTextColor={COLORS.textMuted} multiline numberOfLines={4} />
+              placeholderTextColor={themeColors.textMuted} multiline numberOfLines={4} />
           </>
         );
 
-      // ── Step 2: Category ──────────────────────────────────────────────────
       case 2:
         return (
           <>
-            <Text style={styles.stepTitle}>🔖 What service do you offer?</Text>
-            <Text style={styles.stepSubtitle}>Select your main service category</Text>
+            <Text style={[styles.stepTitle, { color: themeColors.textPrimary }]}>🔖 What service do you offer?</Text>
+            <Text style={[styles.stepSubtitle, { color: themeColors.textSecondary }]}>Select your main service category</Text>
             <PillGroup
               items={CATEGORIES.map(c => c.label)}
               selected={serviceCategory ? [CATEGORIES.find(c => c.value === serviceCategory)?.label ?? ''] : []}
@@ -387,21 +388,20 @@ export default function ProfileSetupScreen() {
           </>
         );
 
-      // ── Step 3: Specializations ───────────────────────────────────────────
       case 3: {
         if (!catConfig) return null;
         return (
           <>
-            <Text style={styles.stepTitle}>📋 Your Specializations</Text>
-            <Text style={styles.stepSubtitle}>Select all that apply</Text>
+            <Text style={[styles.stepTitle, { color: themeColors.textPrimary }]}>📋 Your Specializations</Text>
+            <Text style={[styles.stepSubtitle, { color: themeColors.textSecondary }]}>Select all that apply</Text>
 
-            <Text style={styles.label}>{catConfig.subTypesLabel} *</Text>
+            <Text style={[styles.label, { color: themeColors.textSecondary }]}>{catConfig.subTypesLabel} *</Text>
             <PillGroup items={catConfig.subTypes} selected={serviceSubTypes}
               onPress={v => toggleArr(serviceSubTypes, v, setServiceSubTypes)} />
 
             {catConfig.extras.map(field => (
               <View key={field.key} style={styles.fieldBlock}>
-                <Text style={styles.label}>{field.label}</Text>
+                <Text style={[styles.label, { color: themeColors.textSecondary }]}>{field.label}</Text>
 
                 {field.type === 'multi' && (
                   <PillGroup
@@ -424,10 +424,10 @@ export default function ProfileSetupScreen() {
                     {(['yes', 'no'] as const).map(val => (
                       <TouchableOpacity
                         key={val}
-                        style={[styles.toggleBtn, extraFields[field.key] === val && styles.toggleBtnActive]}
+                        style={[styles.toggleBtn, extraFields[field.key] === val && { borderColor: themeColors.primary, backgroundColor: themeColors.primary + '20' }]}
                         onPress={() => setToggle(field.key, val)}
                       >
-                        <Text style={[styles.toggleText, extraFields[field.key] === val && styles.toggleTextActive]}>
+                        <Text style={[styles.toggleText, extraFields[field.key] === val && { color: themeColors.primary }]}>
                           {val === 'yes' ? '✓  Yes' : '✗  No'}
                         </Text>
                       </TouchableOpacity>
@@ -437,11 +437,11 @@ export default function ProfileSetupScreen() {
 
                 {field.type === 'number' && (
                   <TextInput
-                    style={[styles.input, { marginBottom: SPACING.sm }]}
+                    style={[styles.input, { marginBottom: SPACING.sm, backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }]}
                     value={extraNumbers[field.key] || ''}
                     onChangeText={v => setExtraNumbers(n => ({ ...n, [field.key]: v }))}
                     placeholder="Enter number"
-                    placeholderTextColor={COLORS.textMuted}
+                    placeholderTextColor={themeColors.textMuted}
                     keyboardType="number-pad"
                   />
                 )}
@@ -451,56 +451,54 @@ export default function ProfileSetupScreen() {
         );
       }
 
-      // ── Step 4: Details ───────────────────────────────────────────────────
       case 4:
         return (
           <>
-            <Text style={styles.stepTitle}>💼 Experience & Availability</Text>
-            <Text style={styles.stepSubtitle}>Help customers know when and how much</Text>
+            <Text style={[styles.stepTitle, { color: themeColors.textPrimary }]}>💼 Experience & Availability</Text>
+            <Text style={[styles.stepSubtitle, { color: themeColors.textSecondary }]}>Help customers know when and how much</Text>
 
-            <Text style={styles.label}>Years of Experience *</Text>
-            <TextInput style={styles.input} value={experience} onChangeText={setExperience}
-              placeholder="e.g. 3" placeholderTextColor={COLORS.textMuted} keyboardType="number-pad" />
+            <Text style={[styles.label, { color: themeColors.textSecondary }]}>Years of Experience *</Text>
+            <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={experience} onChangeText={setExperience}
+              placeholder="e.g. 3" placeholderTextColor={themeColors.textMuted} keyboardType="number-pad" />
 
-            <Text style={styles.label}>Hourly Rate (₹) *</Text>
-            <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate}
-              placeholder="e.g. 300" placeholderTextColor={COLORS.textMuted} keyboardType="decimal-pad" />
+            <Text style={[styles.label, { color: themeColors.textSecondary }]}>Hourly Rate (₹) *</Text>
+            <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={hourlyRate} onChangeText={setHourlyRate}
+              placeholder="e.g. 300" placeholderTextColor={themeColors.textMuted} keyboardType="decimal-pad" />
 
-            <Text style={styles.label}>Languages Spoken</Text>
+            <Text style={[styles.label, { color: themeColors.textSecondary }]}>Languages Spoken</Text>
             <PillGroup items={LANGUAGES} selected={languages}
               onPress={v => toggleArr(languages, v, setLanguages)} />
 
-            <Text style={styles.label}>Available Days</Text>
+            <Text style={[styles.label, { color: themeColors.textSecondary }]}>Available Days</Text>
             <PillGroup items={DAYS} selected={availableDays}
               onPress={v => toggleArr(availableDays, v, setAvailableDays)} />
 
-            <Text style={styles.label}>Preferred Shift</Text>
+            <Text style={[styles.label, { color: themeColors.textSecondary }]}>Preferred Shift</Text>
             <PillGroup items={SHIFTS} selected={shift ? [shift] : []}
               onPress={v => setShift(v)} />
           </>
         );
 
-      // ── Step 5: Location ──────────────────────────────────────────────────
       case 5:
         return (
           <>
-            <Text style={styles.stepTitle}>📍 Your Service Area</Text>
-            <Text style={styles.stepSubtitle}>Where are you available to work?</Text>
+            <Text style={[styles.stepTitle, { color: themeColors.textPrimary }]}>📍 Your Service Area</Text>
+            <Text style={[styles.stepSubtitle, { color: themeColors.textSecondary }]}>Where are you available to work?</Text>
 
-            <TouchableOpacity style={styles.locationBtn} onPress={handleGetLocation} disabled={locationLoading}>
+            <TouchableOpacity style={[styles.locationBtn, { borderColor: themeColors.primary, backgroundColor: themeColors.primary + '10' }]} onPress={handleGetLocation} disabled={locationLoading}>
               {locationLoading
-                ? <ActivityIndicator color={COLORS.primary} />
-                : <Text style={styles.locationBtnText}>📡  Detect My Current Location</Text>}
+                ? <ActivityIndicator color={themeColors.primary} />
+                : <Text style={[styles.locationBtnText, { color: themeColors.primary }]}>📡  Detect My Current Location</Text>}
             </TouchableOpacity>
 
-            <Text style={styles.orDivider}>— or enter manually —</Text>
+            <Text style={[styles.orDivider, { color: themeColors.textMuted }]}>— or enter manually —</Text>
 
-            <Text style={styles.label}>City / Area / Neighbourhood *</Text>
-            <TextInput style={styles.input} value={serviceArea} onChangeText={setServiceArea}
-              placeholder="e.g. Koramangala, Bangalore" placeholderTextColor={COLORS.textMuted} />
+            <Text style={[styles.label, { color: themeColors.textSecondary }]}>City / Area / Neighbourhood *</Text>
+            <TextInput style={[styles.input, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={serviceArea} onChangeText={setServiceArea}
+              placeholder="e.g. Koramangala, Bangalore" placeholderTextColor={themeColors.textMuted} />
 
             {locationCoords && (
-              <Text style={styles.locationDetected}>✓  GPS coordinates captured for precise matching</Text>
+              <Text style={[styles.locationDetected, { color: themeColors.success }]}>✓  GPS coordinates captured for precise matching</Text>
             )}
           </>
         );
@@ -511,37 +509,37 @@ export default function ProfileSetupScreen() {
 
   // ─── Worker multi-step wrapper ─────────────────────────────────────────────
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: themeColors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
       {/* Progress bar */}
       <View style={styles.progressWrap}>
         {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-          <View key={i} style={[styles.progressSeg, i < step && styles.progressSegDone]} />
+          <View key={i} style={[styles.progressSeg, i < step && { backgroundColor: themeColors.primary }]} />
         ))}
       </View>
-      <Text style={styles.progressLabel}>Step {step} of {TOTAL_STEPS}</Text>
+      <Text style={[styles.progressLabel, { color: themeColors.textMuted }]}>Step {step} of {TOTAL_STEPS}</Text>
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {renderStep()}
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={[styles.error, { color: themeColors.error }]}>{error}</Text> : null}
 
         <View style={styles.navRow}>
           {step > 1 && (
-            <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-              <Text style={styles.backBtnText}>← Back</Text>
+            <TouchableOpacity style={[styles.backBtn, { borderColor: themeColors.border }]} onPress={handleBack}>
+              <Text style={[styles.backBtnText, { color: themeColors.textSecondary }]}>← Back</Text>
             </TouchableOpacity>
           )}
 
           {step < TOTAL_STEPS ? (
-            <TouchableOpacity style={[styles.btn, step > 1 && styles.btnShrink]} onPress={handleNext}>
-              <Text style={styles.btnText}>Next →</Text>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: themeColors.primary }, step > 1 && styles.btnShrink]} onPress={handleNext}>
+              <Text style={[styles.btnText, { color: themeColors.white }]}>Next →</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={[styles.btn, styles.btnShrink]} onPress={handleSubmit} disabled={saving}>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: themeColors.primary }, styles.btnShrink]} onPress={handleSubmit} disabled={saving}>
               {saving
-                ? <ActivityIndicator color={COLORS.white} />
-                : <Text style={styles.btnText}>Register</Text>}
+                ? <ActivityIndicator color={themeColors.white} />
+                : <Text style={[styles.btnText, { color: themeColors.white }]}>Register</Text>}
             </TouchableOpacity>
           )}
         </View>
@@ -552,61 +550,56 @@ export default function ProfileSetupScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container:          { flex: 1, backgroundColor: COLORS.white },
+  container:          { flex: 1 },
   scroll:             { flexGrow: 1, padding: SPACING.lg, paddingTop: SPACING.sm },
 
   // Progress
   progressWrap:       { flexDirection: 'row', gap: 4, paddingHorizontal: SPACING.lg, paddingTop: SPACING.lg },
-  progressSeg:        { flex: 1, height: 4, borderRadius: 2, backgroundColor: COLORS.border },
-  progressSegDone:    { backgroundColor: COLORS.primary },
-  progressLabel:      { textAlign: 'center', fontSize: FONTS.sizes.xs, color: COLORS.textMuted, marginTop: 6, marginBottom: SPACING.md },
+  progressSeg:        { flex: 1, height: 4, borderRadius: 2 },
+  progressLabel:      { textAlign: 'center', fontSize: FONTS.sizes.xs, marginTop: 6, marginBottom: SPACING.md },
 
   // Step header
-  stepTitle:          { fontSize: FONTS.sizes.xl, fontWeight: '800', color: COLORS.textPrimary, marginBottom: SPACING.xs },
-  stepSubtitle:       { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, marginBottom: SPACING.lg, lineHeight: 20 },
+  stepTitle:          { fontSize: FONTS.sizes.xl, fontWeight: '800', marginBottom: SPACING.xs },
+  stepSubtitle:       { fontSize: FONTS.sizes.sm, marginBottom: SPACING.lg, lineHeight: 20 },
 
   // Labels
-  label:              { fontSize: FONTS.sizes.sm, fontWeight: '600', color: COLORS.textSecondary, marginBottom: SPACING.xs },
+  label:              { fontSize: FONTS.sizes.sm, fontWeight: '600', marginBottom: SPACING.xs },
 
   // Inputs
-  input:              { backgroundColor: COLORS.inputBg, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, fontSize: FONTS.sizes.base, color: COLORS.textPrimary, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
+  input:              { borderRadius: BORDER_RADIUS.md, padding: SPACING.md, fontSize: FONTS.sizes.base, marginBottom: SPACING.md, borderWidth: 1 },
   multiline:          { height: 100, textAlignVertical: 'top' },
 
   // Pills
   pillGrid:           { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.lg },
-  pill:               { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.full, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.inputBg },
-  pillActive:         { borderColor: COLORS.primary, backgroundColor: COLORS.primary + '20' },
-  pillText:           { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, fontWeight: '500' },
-  pillTextActive:     { color: COLORS.primary, fontWeight: '700' },
+  pill:               { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.full, borderWidth: 1.5 },
+  pillText:           { fontSize: FONTS.sizes.sm, fontWeight: '500' },
 
   // Toggle (yes/no)
   fieldBlock:         { marginBottom: SPACING.xs },
   toggleRow:          { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.lg },
-  toggleBtn:          { flex: 1, paddingVertical: SPACING.sm + 2, borderRadius: BORDER_RADIUS.md, borderWidth: 1.5, borderColor: COLORS.border, alignItems: 'center', backgroundColor: COLORS.inputBg },
-  toggleBtnActive:    { borderColor: COLORS.primary, backgroundColor: COLORS.primary + '20' },
-  toggleText:         { fontSize: FONTS.sizes.sm, fontWeight: '600', color: COLORS.textSecondary },
-  toggleTextActive:   { color: COLORS.primary },
+  toggleBtn:          { flex: 1, paddingVertical: SPACING.sm + 2, borderRadius: BORDER_RADIUS.md, borderWidth: 1.5, alignItems: 'center' },
+  toggleText:         { fontSize: FONTS.sizes.sm, fontWeight: '600' },
 
   // Location
-  locationBtn:        { borderWidth: 1.5, borderColor: COLORS.primary, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, alignItems: 'center', marginBottom: SPACING.md, backgroundColor: COLORS.primary + '10' },
-  locationBtnText:    { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.primary },
-  locationDetected:   { fontSize: FONTS.sizes.xs, color: COLORS.success, marginBottom: SPACING.md },
-  orDivider:          { textAlign: 'center', color: COLORS.textMuted, fontSize: FONTS.sizes.xs, marginBottom: SPACING.md },
+  locationBtn:        { borderWidth: 1.5, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, alignItems: 'center', marginBottom: SPACING.md },
+  locationBtnText:    { fontSize: FONTS.sizes.base, fontWeight: '700' },
+  locationDetected:   { fontSize: FONTS.sizes.xs, marginBottom: SPACING.md },
+  orDivider:          { textAlign: 'center', fontSize: FONTS.sizes.xs, marginBottom: SPACING.md },
 
   // Navigation
   navRow:             { flexDirection: 'row', gap: SPACING.md, marginTop: SPACING.md, marginBottom: SPACING.xl },
-  backBtn:            { flex: 1, borderWidth: 1.5, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
-  backBtnText:        { fontSize: FONTS.sizes.base, fontWeight: '600', color: COLORS.textSecondary },
-  btn:                { flex: 1, backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md + 2, alignItems: 'center' },
+  backBtn:            { flex: 1, borderWidth: 1.5, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
+  backBtnText:        { fontSize: FONTS.sizes.base, fontWeight: '600' },
+  btn:                { flex: 1, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md + 2, alignItems: 'center' },
   btnShrink:          { flex: 2 },
-  btnText:            { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.white },
+  btnText:            { fontSize: FONTS.sizes.md, fontWeight: '700' },
 
   // Customer-only
   iconBox:            { alignItems: 'center', marginBottom: SPACING.lg },
   icon:               { fontSize: 64 },
-  title:              { fontSize: FONTS.sizes.xl, fontWeight: '800', color: COLORS.textPrimary, textAlign: 'center', marginBottom: SPACING.sm },
-  subtitle:           { fontSize: FONTS.sizes.base, color: COLORS.textSecondary, textAlign: 'center', marginBottom: SPACING.xl, lineHeight: 22 },
+  title:              { fontSize: FONTS.sizes.xl, fontWeight: '800', textAlign: 'center', marginBottom: SPACING.sm },
+  subtitle:           { fontSize: FONTS.sizes.base, textAlign: 'center', marginBottom: SPACING.xl, lineHeight: 22 },
 
   // Error
-  error:              { color: COLORS.error, fontSize: FONTS.sizes.sm, marginBottom: SPACING.sm, textAlign: 'center' },
+  error:              { fontSize: FONTS.sizes.sm, marginBottom: SPACING.sm, textAlign: 'center' },
 });

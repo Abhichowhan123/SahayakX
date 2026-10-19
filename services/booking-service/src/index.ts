@@ -15,6 +15,7 @@ import {
   attachRequestIdToAxios,
   createLogger,
   createRequestContextMiddleware,
+  setRedisGeoClient,
 } from '@serveease/shared/utils';
 import { setBookingLockClient } from './controllers/booking.controller';
 
@@ -61,6 +62,37 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
+
+const cleanupExpiredBookings = async () => {
+  const { BookingModel } = await import('./models/booking.model');
+  const { BookingStatus } = await import('@serveease/shared/types');
+  const { QueueName } = await import('@serveease/shared/events');
+  const { publishEvent } = await import('@serveease/shared/events');
+  try {
+    const now = new Date();
+    const expired = await BookingModel.find({
+      status: BookingStatus.SEARCHING,
+      'schedule.expiresAt': { $lte: now },
+    });
+    for (const booking of expired) {
+      booking.status = BookingStatus.EXPIRED;
+      await booking.save();
+      publishEvent(QueueName.BOOKING_STATUS_CHANGED, {
+        bookingId: booking.bookingId,
+        oldStatus: BookingStatus.SEARCHING,
+        newStatus: BookingStatus.EXPIRED,
+        customerId: booking.customerId,
+        workerId: booking.workerId || '',
+      });
+    }
+    if (expired.length > 0) {
+      log.info({ fn: 'cleanupExpiredBookings', action: 'AUTO_EXPIRE' }, 'Cleaned up expired bookings', { count: expired.length });
+    }
+  } catch (err) {
+    log.error({ fn: 'cleanupExpiredBookings', action: 'AUTO_EXPIRE' }, 'Failed to cleanup expired bookings', err);
+  }
+};
+
 const start = async () => {
   attachMongooseLogger(mongoose.connection, 'booking-service');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/serveease_bookings');
@@ -72,6 +104,16 @@ const start = async () => {
   await lockClient.connect();
   setBookingLockClient(lockClient as any);
   log.info({ fn: 'start', action: 'STARTUP' }, 'Redis lock client connected');
+
+  // Also initialize Redis GEO client for nearby worker lookups
+  const geoClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+  await geoClient.connect();
+  setRedisGeoClient(geoClient as any);
+  log.info({ fn: 'start', action: 'STARTUP' }, 'Redis GEO client connected for dispatch');
+
+  // Recover any expired bookings from previous crashes
+  await cleanupExpiredBookings();
+  setInterval(cleanupExpiredBookings, 30 * 1000);
 
   server.listen(PORT, () => log.info({ fn: 'start', action: 'STARTUP' }, 'Booking service started', { port: PORT, websocket: true }));
 };

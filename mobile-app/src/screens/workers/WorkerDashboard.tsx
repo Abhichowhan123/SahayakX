@@ -4,25 +4,25 @@ import {
   Alert, Switch, SafeAreaView, ActivityIndicator,
 } from 'react-native';
 import { bookingApi, workerApi } from '../../api';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
 export default function WorkerDashboard() {
+  const { isOnline, setOnline } = useAuth();
+  const { colors } = useTheme();
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);
   const [activeBooking,   setActiveBooking]   = useState<any>(null);
-  const [isOnline,        setIsOnline]        = useState(false);
   const [loading,         setLoading]         = useState(true);
 
   const loadData = async (showSpinner = false) => {
     if (showSpinner) setLoading(true);
     try {
-      const [profileRes, pending, active] = await Promise.all([
-        workerApi.getMyProfile().catch(() => null),
-        bookingApi.getMyBookings({ status: 'searching' }),
+      const profileRes = await workerApi.getMyProfile().catch(() => null);
+      const [pending, active] = await Promise.all([
+        bookingApi.getAvailable({ category: profileRes?.data?.data?.serviceCategory }),
         bookingApi.getMyBookings({ status: 'accepted' }),
       ]);
-      if (profileRes?.data?.data) {
-        setIsOnline(profileRes.data.data.isOnline);
-      }
       setPendingBookings(pending.data.data);
       setActiveBooking(active.data.data?.[0] || null);
     } finally {
@@ -39,8 +39,7 @@ export default function WorkerDashboard() {
 
   const handleToggleOnline = async (val: boolean) => {
     try {
-      await workerApi.toggleOnline(val);
-      setIsOnline(val);
+      await setOnline(val);
     } catch (err: any) {
       Alert.alert('Error', err?.response?.data?.message || 'Could not update status');
     }
@@ -61,47 +60,47 @@ export default function WorkerDashboard() {
   };
 
   const renderRequest = ({ item }: { item: any }) => (
-    <View style={styles.requestCard}>
+    <View style={[styles.requestCard, { backgroundColor: colors.cardBg }]}>
       <View style={styles.requestHeader}>
-        <Text style={styles.requestService}>{item.serviceCategory?.replace(/_/g, ' ')}</Text>
-        <Text style={styles.requestAmount}>₹{item.pricing?.totalAmount}</Text>
+        <Text style={[styles.requestService, { color: colors.textPrimary }]}>{item.serviceCategory?.replace(/_/g, ' ')}</Text>
+        <Text style={[styles.requestAmount, { color: colors.primary }]}>₹{item.pricing?.totalAmount}</Text>
       </View>
-      <Text style={styles.requestTime}>📅 {item.schedule?.requestedDate} · {item.schedule?.requestedTimeSlot}</Text>
-      <Text style={styles.requestDuration}>⏱️ ~{item.schedule?.estimatedDuration}hr job</Text>
+      <Text style={[styles.requestTime, { color: colors.textSecondary }]}>📅 {item.schedule?.requestedDate} · {item.schedule?.requestedTimeSlot}</Text>
+      <Text style={[styles.requestDuration, { color: colors.textSecondary }]}>⏱️ ~{item.schedule?.estimatedDuration}hr job</Text>
 
       <View style={styles.requestBtns}>
-        <TouchableOpacity style={styles.declineBtn} onPress={() => handleDecline(item.bookingId)}>
-          <Text style={styles.declineBtnText}>Decline</Text>
+        <TouchableOpacity style={[styles.declineBtn, { borderColor: colors.border }]} onPress={() => handleDecline(item.bookingId)}>
+          <Text style={[styles.declineBtnText, { color: colors.textSecondary }]}>Decline</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(item.bookingId)}>
-          <Text style={styles.acceptBtnText}>Accept</Text>
+        <TouchableOpacity style={[styles.acceptBtn, { backgroundColor: colors.primary }]} onPress={() => handleAccept(item.bookingId)}>
+          <Text style={[styles.acceptBtnText, { color: colors.white }]}>Accept</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+  if (loading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /></View>;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Dashboard</Text>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Dashboard</Text>
         <View style={styles.onlineRow}>
-          <Text style={styles.onlineLabel}>{isOnline ? 'Online' : 'Offline'}</Text>
-          <Switch value={isOnline} onValueChange={handleToggleOnline} trackColor={{ true: COLORS.primary }} />
+          <Text style={[styles.onlineLabel, { color: colors.textSecondary }]}>{isOnline ? 'Online' : 'Offline'}</Text>
+          <Switch value={isOnline} onValueChange={handleToggleOnline} trackColor={{ true: colors.primary }} />
         </View>
       </View>
 
       {/* Active job banner */}
       {activeBooking && (
-        <View style={styles.activeBanner}>
-          <Text style={styles.activeBannerText}>🔨 Active job in progress</Text>
-          <Text style={styles.activeBannerSub}>{activeBooking.serviceCategory?.replace(/_/g, ' ')} · ₹{activeBooking.pricing?.totalAmount}</Text>
+        <View style={[styles.activeBanner, { backgroundColor: colors.primary }]}>
+          <Text style={[styles.activeBannerText, { color: colors.white }]}>🔨 Active job in progress</Text>
+          <Text style={[styles.activeBannerSub, { color: colors.white + 'CC' }]}>{activeBooking.serviceCategory?.replace(/_/g, ' ')} · ₹{activeBooking.pricing?.totalAmount}</Text>
         </View>
       )}
 
       {/* New requests */}
-      <Text style={styles.sectionTitle}>
+      <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
         {pendingBookings.length > 0
           ? `${pendingBookings.length} New Request${pendingBookings.length > 1 ? 's' : ''}`
           : 'No new requests'}
@@ -109,8 +108,8 @@ export default function WorkerDashboard() {
 
       {pendingBookings.length === 0 && (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>{isOnline ? '⏳' : '😴'}</Text>
-          <Text style={styles.emptyText}>{isOnline ? 'Waiting for booking requests...' : 'Go online to receive bookings'}</Text>
+          <Text style={[styles.emptyIcon, { color: colors.textSecondary }]}>{isOnline ? '⏳' : '😴'}</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{isOnline ? 'Waiting for booking requests...' : 'Go online to receive bookings'}</Text>
         </View>
       )}
 
@@ -125,29 +124,29 @@ export default function WorkerDashboard() {
 }
 
 const styles = StyleSheet.create({
-  safe:             { flex: 1, backgroundColor: COLORS.background },
+  safe:             { flex: 1 },
   center:           { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header:           { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.md, backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  title:            { fontSize: FONTS.sizes.xl, fontWeight: '800', color: COLORS.textPrimary },
+  header:           { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.md, borderBottomWidth: 1 },
+  title:            { fontSize: FONTS.sizes.xl, fontWeight: '800' },
   onlineRow:        { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  onlineLabel:      { fontSize: FONTS.sizes.sm, fontWeight: '600', color: COLORS.textSecondary },
-  activeBanner:     { backgroundColor: COLORS.primary, padding: SPACING.md },
-  activeBannerText: { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.white },
-  activeBannerSub:  { fontSize: FONTS.sizes.xs, color: COLORS.white + 'CC', marginTop: 2 },
-  sectionTitle:     { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.textPrimary, padding: SPACING.md, paddingBottom: SPACING.sm },
+  onlineLabel:      { fontSize: FONTS.sizes.sm, fontWeight: '600' },
+  activeBanner:     { padding: SPACING.md },
+  activeBannerText: { fontSize: FONTS.sizes.base, fontWeight: '700' },
+  activeBannerSub:  { fontSize: FONTS.sizes.xs, marginTop: 2 },
+  sectionTitle:     { fontSize: FONTS.sizes.md, fontWeight: '700', padding: SPACING.md, paddingBottom: SPACING.sm },
   list:             { padding: SPACING.md, paddingTop: 0, gap: SPACING.sm },
-  requestCard:      { backgroundColor: COLORS.white, borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+  requestCard:      { borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
   requestHeader:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.xs },
-  requestService:   { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.textPrimary, textTransform: 'capitalize' },
-  requestAmount:    { fontSize: FONTS.sizes.base, fontWeight: '800', color: COLORS.primary },
-  requestTime:      { fontSize: FONTS.sizes.xs, color: COLORS.textSecondary, marginBottom: 2 },
-  requestDuration:  { fontSize: FONTS.sizes.xs, color: COLORS.textSecondary, marginBottom: SPACING.md },
+  requestService:   { fontSize: FONTS.sizes.base, fontWeight: '700', textTransform: 'capitalize' },
+  requestAmount:    { fontSize: FONTS.sizes.base, fontWeight: '800' },
+  requestTime:      { fontSize: FONTS.sizes.xs, marginBottom: 2 },
+  requestDuration:  { fontSize: FONTS.sizes.xs, marginBottom: SPACING.md },
   requestBtns:      { flexDirection: 'row', gap: SPACING.sm },
-  declineBtn:       { flex: 1, borderWidth: 1.5, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
-  declineBtnText:   { fontSize: FONTS.sizes.sm, fontWeight: '600', color: COLORS.textSecondary },
-  acceptBtn:        { flex: 2, backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
-  acceptBtnText:    { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.white },
+  declineBtn:       { flex: 1, borderWidth: 1.5, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
+  declineBtnText:   { fontSize: FONTS.sizes.sm, fontWeight: '600' },
+  acceptBtn:        { flex: 2, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
+  acceptBtnText:    { fontSize: FONTS.sizes.sm, fontWeight: '700' },
   emptyState:       { alignItems: 'center', paddingTop: 60 },
   emptyIcon:        { fontSize: 48, marginBottom: SPACING.md },
-  emptyText:        { fontSize: FONTS.sizes.base, color: COLORS.textSecondary, textAlign: 'center' },
+  emptyText:        { fontSize: FONTS.sizes.base, textAlign: 'center' },
 });

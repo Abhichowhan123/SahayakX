@@ -175,6 +175,7 @@ export const userApi = {
   updateLocation:(lat: number, lng: number) =>
     api.put('/users/me/location', { latitude: lat, longitude: lng }),
   addAddress:    (address: object) => api.post('/users/me/addresses', address),
+  deleteAddress: (id: string)       => api.delete(`/users/me/addresses/${id}`),
   getWallet:     ()               => api.get('/users/me/wallet'),
 };
 
@@ -226,6 +227,9 @@ export const bookingApi = {
 
   getMyBookings:  (params?: { status?: string; page?: number }) =>
     api.get('/bookings', { params }),
+
+  getAvailable:   (params?: { category?: string; page?: number }) =>
+    api.get('/bookings/available', { params }),
 
   getById:        (bookingId: string) => api.get(`/bookings/${bookingId}`),
   accept:         (bookingId: string) => api.put(`/bookings/${bookingId}/accept`),

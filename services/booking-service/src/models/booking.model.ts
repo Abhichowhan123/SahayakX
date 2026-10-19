@@ -7,7 +7,9 @@ import {
 export interface IBookingDocument extends Document {
   bookingId:       string;
   customerId:      string;   // phone or ObjectId ref
-  workerId:        string;
+  workerId:        string; // empty initially for SEARCHING/dispatch flow
+  /** Worker IDs this booking was dispatched to (wave-based notification targets). */
+  dispatchedTo:    string[];
   serviceCategory: ServiceCategory;
   serviceSubType?: string;
   status:          BookingStatus;
@@ -28,6 +30,7 @@ export interface IBookingDocument extends Document {
     estimatedDuration:  number;
     startedAt?:         Date;
     completedAt?:       Date;
+    expiresAt?:         Date;
   };
 
   location: {
@@ -35,6 +38,7 @@ export interface IBookingDocument extends Document {
     workerStartCoords?: [number, number];
   };
 
+  
   otp: {
     code:     string;
     verified: boolean;
@@ -64,7 +68,8 @@ export interface IBookingDocument extends Document {
 const BookingSchema = new Schema<IBookingDocument>({
   bookingId:       { type: String, required: true, unique: true, index: true },
   customerId:      { type: String, required: true, index: true },
-  workerId:        { type: String, required: true, index: true },
+  workerId:        { type: String, required: false, default: '', index: true },
+  dispatchedTo:    { type: [String], default: [], index: true },
   serviceCategory: { type: String, enum: Object.values(ServiceCategory), required: true },
   serviceSubType:  String,
   status:          { type: String, enum: Object.values(BookingStatus), default: BookingStatus.SEARCHING },
@@ -85,6 +90,7 @@ const BookingSchema = new Schema<IBookingDocument>({
     estimatedDuration: { type: Number, default: 1 },
     startedAt:         Date,
     completedAt:       Date,
+    expiresAt:         Date,
   },
 
   location: {

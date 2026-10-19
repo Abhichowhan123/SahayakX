@@ -5,15 +5,15 @@ import { Platform } from 'react-native';
 const storage = {
   get: (key: string) =>
     Platform.OS === 'web'
-      ? Promise.resolve(localStorage.getItem(key))
+      ? Promise.resolve(typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null)
       : SecureStore.getItemAsync(key),
   set: (key: string, value: string) =>
     Platform.OS === 'web'
-      ? Promise.resolve(localStorage.setItem(key, value))
+      ? Promise.resolve(typeof localStorage !== 'undefined' ? localStorage.setItem(key, value) : null)
       : SecureStore.setItemAsync(key, value),
   del: (key: string) =>
     Platform.OS === 'web'
-      ? Promise.resolve(localStorage.removeItem(key))
+      ? Promise.resolve(typeof localStorage !== 'undefined' ? localStorage.removeItem(key) : null)
       : SecureStore.deleteItemAsync(key),
 };
 
@@ -39,7 +39,7 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const token    = await storage.get('admin_token');
         const username = await storage.get('admin_username');
-        if (token && username) {
+        if (token && token !== 'undefined' && token !== 'null' && username) {
           setUserToken(token);
           setAdmin({ username, token });
         }

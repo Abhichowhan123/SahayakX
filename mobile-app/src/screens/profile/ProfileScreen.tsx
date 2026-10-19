@@ -1,26 +1,28 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Alert, SafeAreaView, Switch, Platform,
+  SafeAreaView, Platform, Alert, Switch,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { userApi, workerApi } from '../../api';
 import { useAuth }  from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { appLogger } from '../../utils/logger';
-import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { SPACING, BORDER_RADIUS, FONTS } from '../../constants';
+import { colors, THEMES } from '../../theme/theme';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, logout, isWorkerMode, setWorkerMode } = useAuth();
+  const { colors: themeColors, setTheme } = useTheme();
   const [profile,  setProfile]  = useState<any>(null);
   const [wallet,   setWallet]   = useState<any>(null);
-  const [isOnline, setIsOnline] = useState(false);
+  const [isDark, setIsDark]     = useState(themeColors === THEMES.dark ? 'dark' : 'light');
 
   const fetchProfile = useCallback(async () => {
     try {
       if (isWorkerMode) {
         const p = await workerApi.getMyProfile();
         setProfile(p.data.data);
-        setIsOnline(p.data.data.isOnline);
       } else {
         const [p, w] = await Promise.all([userApi.getProfile(), userApi.getWallet()]);
         setProfile(p.data.data);
@@ -32,15 +34,6 @@ export default function ProfileScreen({ navigation }: any) {
   }, [isWorkerMode]);
 
   useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
-
-  const handleToggleOnline = async (val: boolean) => {
-    try {
-      await workerApi.toggleOnline(val);
-      setIsOnline(val);
-    } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.message || 'Could not update status');
-    }
-  };
 
   const handleLogout = () => {
     const doLogout = async () => {
@@ -62,79 +55,104 @@ export default function ProfileScreen({ navigation }: any) {
 
   const MenuItem = ({ icon, label, onPress, value, isSwitch }: any) => (
     <TouchableOpacity style={styles.menuItem} onPress={isSwitch ? undefined : onPress}>
-      <Text style={styles.menuIcon}>{icon}</Text>
-      <Text style={styles.menuLabel}>{label}</Text>
+      <View style={[styles.rowIcon, { backgroundColor: themeColors.inputBg }]}>
+        <Text style={[styles.menuIcon, { color: themeColors.textSecondary }]}>{icon}</Text>
+      </View>
+      <Text style={[styles.menuLabel, { color: themeColors.textPrimary }]}>{label}</Text>
       {isSwitch
-        ? <Switch value={value} onValueChange={onPress} trackColor={{ true: COLORS.primary }} />
-        : <Text style={styles.menuArrow}>›</Text>}
+        ? <Switch value={value} onValueChange={onPress} trackColor={{ true: themeColors.primary }} />
+        : <Text style={[styles.menuArrow, { color: themeColors.textMuted }]}>›</Text>}
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Profile header */}
-        <View style={styles.hero}>
+        <View style={[styles.hero, { backgroundColor: colors.surface }]}>
           <View style={styles.avatarWrap}>
             <Text style={styles.avatarText}>{profile?.fullName?.[0] || user?.phone?.[0] || '?'}</Text>
           </View>
-          <Text style={styles.name}>{profile?.fullName || 'Set your name'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.name}>{profile?.fullName || 'Set your name'}</Text>
+            {isWorkerMode && profile?.verification?.status === 'verified' && (
+              <Text style={{ fontSize: 18 }}>✅</Text>
+            )}
+            {isWorkerMode && profile?.verification?.status !== 'verified' && (
+              <Text style={{ fontSize: 16, color: themeColors.textMuted }}>⚪</Text>
+            )}
+          </View>
           <Text style={styles.phone}>{user?.phone}</Text>
-          {isWorkerMode && (
-            <View style={[styles.badge, { backgroundColor: isOnline ? COLORS.success : COLORS.textMuted }]}>
-              <Text style={styles.badgeText}>{isOnline ? 'Online' : 'Offline'}</Text>
-            </View>
-          )}
+
         </View>
 
         {/* Wallet (customer only) */}
         {!isWorkerMode && wallet && (
-          <View style={styles.walletCard}>
-            <Text style={styles.walletLabel}>Wallet Balance</Text>
-            <Text style={styles.walletAmount}>₹{wallet.balance?.toFixed(2) || '0.00'}</Text>
-            <TouchableOpacity style={styles.topupBtn}>
-              <Text style={styles.topupText}>+ Add Money</Text>
+          <View style={[styles.walletCard, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.walletLabel, { color: colors.white + 'CC' }]}>Wallet Balance</Text>
+            <Text style={[styles.walletAmount, { color: colors.white }]}>₹{wallet.balance?.toFixed(2) || '0.00'}</Text>
+            <TouchableOpacity style={[styles.topupBtn, { backgroundColor: colors.white + '25' }]}>
+              <Text style={[styles.topupText, { color: colors.white }]}>+ Add Money</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Worker earnings */}
         {isWorkerMode && profile?.wallet && (
-          <View style={styles.walletCard}>
-            <Text style={styles.walletLabel}>Wallet Balance</Text>
-            <Text style={styles.walletAmount}>₹{profile.wallet.balance?.toFixed(2) || '0.00'}</Text>
-            <Text style={styles.walletSub}>Total earned: ₹{profile.wallet.totalEarned?.toFixed(2) || '0.00'}</Text>
+          <View style={[styles.walletCard, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.walletLabel, { color: colors.white + 'CC' }]}>Wallet Balance</Text>
+            <Text style={[styles.walletAmount, { color: colors.white }]}>₹{profile.wallet.balance?.toFixed(2) || '0.00'}</Text>
+            <Text style={[styles.walletSub, { color: colors.white + 'AA' }]}>Total earned: ₹{profile.wallet.totalEarned?.toFixed(2) || '0.00'}</Text>
           </View>
         )}
 
-        {/* Worker online toggle */}
-        {isWorkerMode && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Availability</Text>
-            <MenuItem icon="🟢" label="Go Online" isSwitch value={isOnline} onPress={handleToggleOnline} />
-          </View>
-        )}
+        {/* Theme */}
+        <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Theme</Text>
+          <MenuItem
+            icon={isDark === 'dark' ? '🌙' : '☀️'}
+            label="Dark Mode"
+            isSwitch
+            value={isDark === 'dark'}
+            onPress={(val: boolean) => { setIsDark(val ? 'dark' : 'light'); setTheme(val ? 'dark' : 'light'); }}
+          />
+          <Text style={[styles.themeHint, { color: colors.textMuted }]}>More themes coming soon</Text>
+        </View>
 
         {/* Account section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+        <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Account</Text>
           <MenuItem icon="👤" label="Edit Profile"      onPress={() => navigation.navigate('EditProfile')} />
-          <MenuItem icon="📍" label="Manage Addresses"  onPress={() => {}} />
+          <MenuItem icon="📍" label="Manage Addresses"  onPress={() => navigation.navigate('Addresses')} />
           <MenuItem icon="💳" label="Payment Methods"   onPress={() => {}} />
           <MenuItem icon="📜" label="Transaction History" onPress={() => {}} />
         </View>
 
         {/* Mode switch — only for workers */}
         {user?.role === 'worker' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Mode</Text>
+          <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Mode</Text>
             <MenuItem icon={isWorkerMode ? '🛒' : '👷'} label={isWorkerMode ? 'Switch to Customer' : 'Switch to Worker Mode'} onPress={() => setWorkerMode(!isWorkerMode)} />
           </View>
         )}
 
+        {/* Worker verification */}
+        {user?.role === 'worker' && (
+          <>
+            <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+              <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Verification</Text>
+              <MenuItem
+                icon="📄"
+                label="Verification Documents"
+                onPress={() => navigation.navigate('Verification')}
+              />
+            </View>
+          </>
+        )}
+
         {/* Support */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
+        <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Support</Text>
           <MenuItem icon="❓" label="Help & FAQs"    onPress={() => {}} />
           <MenuItem icon="📞" label="Contact Us"     onPress={() => {}} />
           <MenuItem icon="⭐" label="Rate the App"   onPress={() => {}} />
@@ -142,11 +160,11 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity style={[styles.logoutBtn, { borderColor: colors.error }]} onPress={handleLogout}>
+          <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>ServeEase v1.0.0</Text>
+        <Text style={[styles.version, { color: colors.textMuted }]}>ServeEase v1.0.0</Text>
         <View style={{ height: SPACING.xl }} />
       </ScrollView>
     </SafeAreaView>
@@ -154,27 +172,30 @@ export default function ProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safe:        { flex: 1, backgroundColor: COLORS.background },
-  hero:        { backgroundColor: COLORS.white, alignItems: 'center', paddingVertical: SPACING.xl },
-  avatarWrap:  { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.sm },
-  avatarText:  { fontSize: FONTS.sizes.xxl, fontWeight: '700', color: COLORS.white },
-  name:        { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.textPrimary },
-  phone:       { fontSize: FONTS.sizes.sm, color: COLORS.textSecondary, marginTop: 4 },
+  safe:        { flex: 1, backgroundColor: colors.background },
+  content:     { paddingHorizontal: SPACING.md, gap: SPACING.sm },
+  hero:        { backgroundColor: colors.surface, alignItems: 'center', paddingVertical: SPACING.xl },
+  avatarWrap:  { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.sm },
+  avatarText:  { fontSize: FONTS.sizes.xxl, fontWeight: '700', color: colors.white },
+  name:        { fontSize: FONTS.sizes.lg, fontWeight: '700', color: colors.textPrimary },
+  phone:       { fontSize: FONTS.sizes.sm, color: colors.textSecondary, marginTop: 4 },
   badge:       { marginTop: SPACING.sm, paddingHorizontal: SPACING.md, paddingVertical: 4, borderRadius: BORDER_RADIUS.full },
-  badgeText:   { fontSize: FONTS.sizes.xs, fontWeight: '700', color: COLORS.white },
-  walletCard:  { backgroundColor: COLORS.primary, margin: SPACING.md, borderRadius: BORDER_RADIUS.lg, padding: SPACING.lg },
-  walletLabel: { fontSize: FONTS.sizes.sm, color: COLORS.white + 'CC' },
-  walletAmount:{ fontSize: FONTS.sizes.xxl, fontWeight: '800', color: COLORS.white, marginTop: 4 },
-  walletSub:   { fontSize: FONTS.sizes.xs, color: COLORS.white + 'AA', marginTop: 4 },
-  topupBtn:    { marginTop: SPACING.sm, backgroundColor: COLORS.white + '25', borderRadius: BORDER_RADIUS.full, paddingVertical: 6, paddingHorizontal: SPACING.md, alignSelf: 'flex-start' },
-  topupText:   { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.white },
-  section:     { backgroundColor: COLORS.white, marginBottom: SPACING.sm, paddingHorizontal: SPACING.md },
-  sectionTitle:{ fontSize: FONTS.sizes.xs, fontWeight: '700', color: COLORS.textMuted, paddingTop: SPACING.md, paddingBottom: SPACING.xs, textTransform: 'uppercase', letterSpacing: 1 },
-  menuItem:    { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  menuIcon:    { fontSize: FONTS.sizes.base, marginRight: SPACING.md, width: 24 },
-  menuLabel:   { flex: 1, fontSize: FONTS.sizes.base, color: COLORS.textPrimary },
-  menuArrow:   { fontSize: FONTS.sizes.lg, color: COLORS.textMuted },
-  logoutBtn:   { margin: SPACING.md, borderWidth: 1.5, borderColor: COLORS.error, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
-  logoutText:  { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.error },
-  version:     { textAlign: 'center', fontSize: FONTS.sizes.xs, color: COLORS.textMuted, marginTop: SPACING.sm },
+  badgeText:   { fontSize: FONTS.sizes.xs, fontWeight: '700', color: colors.white },
+  walletCard:  { backgroundColor: colors.primary, margin: SPACING.md, borderRadius: BORDER_RADIUS.lg, padding: SPACING.lg },
+  walletLabel: { fontSize: FONTS.sizes.sm, color: colors.white + 'CC' },
+  walletAmount:{ fontSize: FONTS.sizes.xxl, fontWeight: '800', color: colors.white, marginTop: 4 },
+  walletSub:   { fontSize: FONTS.sizes.xs, color: colors.white + 'AA', marginTop: 4 },
+  topupBtn:    { marginTop: SPACING.sm, backgroundColor: colors.white + '25', borderRadius: BORDER_RADIUS.full, paddingVertical: 6, paddingHorizontal: SPACING.md, alignSelf: 'flex-start' },
+  topupText:   { fontSize: FONTS.sizes.sm, fontWeight: '700', color: colors.white },
+  section:     { backgroundColor: colors.cardBg, marginBottom: SPACING.sm, paddingHorizontal: SPACING.md, borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.md },
+  sectionTitle:{ fontSize: FONTS.sizes.xs, fontWeight: '700', color: colors.textMuted, paddingTop: SPACING.md, paddingBottom: SPACING.xs, textTransform: 'uppercase', letterSpacing: 1 },
+  menuItem:    { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+  rowIcon:     { width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: SPACING.md },
+  menuIcon:    { fontSize: FONTS.sizes.base },
+  menuLabel:   { flex: 1, fontSize: FONTS.sizes.base, color: colors.textPrimary },
+  menuArrow:   { fontSize: FONTS.sizes.lg, color: colors.textMuted },
+  themeHint:   { fontSize: FONTS.sizes.xs, color: colors.textMuted, marginTop: SPACING.xs, paddingHorizontal: SPACING.md },
+  logoutBtn:   { margin: SPACING.md, borderWidth: 1.5, borderColor: colors.error, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
+  logoutText:  { fontSize: FONTS.sizes.base, fontWeight: '700', color: colors.error },
+  version:     { textAlign: 'center', fontSize: FONTS.sizes.xs, color: colors.textMuted, marginTop: SPACING.sm },
 });
