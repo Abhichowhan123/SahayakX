@@ -73,23 +73,8 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
     // Dispatch to nearby workers in waves
     await dispatchWave(bookingId, location);
 
-    // Auto-expire if no worker accepts in time
-    setTimeout(async () => {
-      try {
-        const b = await BookingModel.findOne({ bookingId });
-        if (b && b.status === BookingStatus.SEARCHING) {
-          b.status = BookingStatus.EXPIRED;
-          await b.save();
-          log.info({ fn: 'createBooking:autoExpire', tag: 'bookingService_autoExpire', action: 'AUTO_EXPIRE' }, 'Booking auto-expired', { bookingId });
-          publishEvent(QueueName.BOOKING_STATUS_CHANGED, {
-            bookingId, oldStatus: BookingStatus.SEARCHING, newStatus: BookingStatus.EXPIRED,
-            customerId, workerId: '',
-          });
-        }
-      } catch (err) {
-        log.error({ fn: 'createBooking:autoExpire', tag: 'bookingService_autoExpire_failed', action: 'AUTO_EXPIRE' }, 'Auto-expire failed', err);
-      }
-    }, CANCELLATION_RULES.workerAcceptanceTimeoutSeconds * 1000);
+    // Auto-expire handled durably by cleanupExpiredBookings interval in index.ts
+    // (survives process restarts; setTimeout was lost on restart).
 
     res.status(201).json(success({ bookingId, totalAmount, otp: '****' }, 'Booking request sent. Waiting for nearby workers to accept.'));
   } catch (err) {

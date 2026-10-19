@@ -87,7 +87,7 @@ Home services marketplace (like Rapido) — TypeScript microservices + MongoDB +
 - [x] Fix #14: api-gateway/nginx.conf — No location /notifications/ block
 - [x] Fix #15: admin-panel/src/screens/DashboardScreen.tsx:11–20 — Health check paths wrong
 - [x] Fix #16: user-service/src/routes/internal.routes.ts:35 — Wallet debit increments cancellationCount
-- [ ] Fix #17: booking-service/src/controllers/booking.controller.ts:76 — setTimeout expiry lost on restart
+- [x] Fix #17: booking-service/src/controllers/booking.controller.ts:76 — setTimeout expiry lost on restart
 - [x] Fix #18: admin-service/src/index.ts:171 — mongoose.connect but no models defined
 - [x] Fix #19: docker-compose.yml:247 — ADMIN_PASSWORD_HASH placeholder
 - [x] Fix #20: docker-compose.yml:248 — ADMIN_JWT_SECRET hardcoded plaintext

@@ -98,19 +98,21 @@ export default function BookingTrackingScreen({ navigation, route }: Props) {
     }
   };
 
+  const handleCancelConfirm = async () => {
+    try {
+      await bookingApi.cancel(bookingId);
+      appLogger.info({ fn: 'handleCancel', tag: 'BookingTrackingScreen_handleCancel_success', screen: 'BookingTracking' }, 'Booking cancelled', { bookingId });
+      navigation.goBack();
+    } catch (err: any) {
+      appLogger.error({ fn: 'handleCancel', tag: 'BookingTrackingScreen_handleCancel_failed', screen: 'BookingTracking' }, 'Failed to cancel booking', err);
+      Alert.alert('Error', err?.response?.data?.message || 'Could not cancel booking. Please try again.');
+    }
+  };
+
   const handleCancel = () => {
     Alert.alert('Cancel Booking', 'Are you sure? A cancellation fee may apply.', [
       { text: 'No',  style: 'cancel' },
-      { text: 'Yes, Cancel', style: 'destructive', onPress: async () => {
-        try {
-          await bookingApi.cancel(bookingId);
-          appLogger.info({ fn: 'handleCancel', tag: 'BookingTrackingScreen_handleCancel_success', screen: 'BookingTracking' }, 'Booking cancelled', { bookingId });
-          navigation.goBack();
-        } catch (err: any) {
-          appLogger.error({ fn: 'handleCancel', tag: 'BookingTrackingScreen_handleCancel_failed', screen: 'BookingTracking' }, 'Failed to cancel booking', err);
-          Alert.alert('Error', err?.response?.data?.message || 'Could not cancel booking. Please try again.');
-        }
-      }},
+      { text: 'Yes, Cancel', style: 'destructive', onPress: handleCancelConfirm },
     ]);
   };
 
@@ -174,7 +176,7 @@ export default function BookingTrackingScreen({ navigation, route }: Props) {
 
         {/* Cancel button (only when searching or accepted) */}
         {['searching', 'accepted'].includes(booking.status) && (
-          <TouchableOpacity style={[styles.cancelBtn, { borderColor: themeColors.error }]} onPress={handleCancel}>
+          <TouchableOpacity style={[styles.cancelBtn, { borderColor: themeColors.error }]} onPress={handleCancelConfirm}>
             <Text style={[styles.cancelBtnText, { color: themeColors.error }]}>Cancel Booking</Text>
           </TouchableOpacity>
         )}
