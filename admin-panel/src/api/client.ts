@@ -69,7 +69,7 @@ export const adminApi = {
     api.post('/admin/login', { username, password }),
   getPendingWorkers:  () => api.get('/admin/workers/pending-verification'),
   approveWorker:      (id: string) => api.post(`/admin/workers/${id}/verify`),
-  rejectWorker:       (id: string, reason: string) =>
+  rejectWorker:       (id: string, reason?: string) =>
     api.post(`/admin/workers/${id}/reject`, { rejectionReason: reason }),
   blockUser:          (phone: string) => api.post(`/admin/users/${phone}/block`),
   blockWorker:        (id: string) => api.post(`/admin/workers/${id}/block`),
@@ -79,6 +79,21 @@ export const adminApi = {
   broadcast:          (title: string, body: string) =>
     api.post('/admin/broadcast-notification', { title, body }),
   getStats:           () => api.get('/admin/dashboard'),
+};
+
+// ─── Admin User/Worker Management ─────────────────────────────────────────────
+export const adminUserApi = {
+  list:    (params?: any) => api.get('/admin/users', { params }),
+  get:     (phone: string) => api.get(`/admin/users/${phone}`),
+  update:  (phone: string, data: any) => api.put(`/admin/users/${phone}`, data),
+  delete:  (phone: string) => api.delete(`/admin/users/${phone}`),
+};
+
+export const adminWorkerMgmtApi = {
+  list:    (params?: any) => api.get('/admin/workers', { params }),
+  get:     (id: string) => api.get(`/admin/workers/${id}`),
+  update:  (id: string, data: any) => api.put(`/admin/workers/${id}`, data),
+  delete:  (id: string) => api.delete(`/admin/workers/${id}`),
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────

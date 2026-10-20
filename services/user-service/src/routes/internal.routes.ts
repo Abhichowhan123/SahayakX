@@ -5,6 +5,77 @@ import { success, failure, createLogger } from '@serveease/shared/utils';
 const router = Router();
 const log    = createLogger('user-service');
 
+// GET /internal/users — list users for the admin panel
+router.get('/', async (req, res) => {
+  const ctx = { fn: 'internalListUsers', tag: 'userService_internalListUsers', action: 'INTERNAL_LIST_USERS' };
+  try {
+    const page = parseInt((req.query.page as string) || '1', 10);
+    const limit = parseInt((req.query.limit as string) || '50', 10);
+    const skip = (page - 1) * limit;
+    const { search, role, isBlocked } = req.query as any;
+    const filter: any = {};
+    if (search) {
+      const rx = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ phone: rx }, { fullName: rx }];
+    }
+    if (role) filter.role = role;
+    if (isBlocked !== undefined) filter.isBlocked = isBlocked === 'true';
+    const [users, total] = await Promise.all([
+      UserModel.find(filter).select('-fcmToken').skip(skip).limit(limit).sort({ createdAt: -1 }),
+      UserModel.countDocuments(filter),
+    ]);
+    log.db(ctx, 'UserModel.find + countDocuments (list)', { total, returned: users.length, page, limit });
+    res.json({
+      ...success(users, 'Users fetched'),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    log.error({ ...ctx, tag: 'userService_internalListUsers_failed' }, 'Internal list users failed', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
+// DELETE /internal/users/:phone — permanently remove a user account
+router.delete('/:phone', async (req, res) => {
+  const ctx = { fn: 'internalDeleteUser', tag: 'userService_internalDeleteUser', action: 'INTERNAL_DELETE_USER' };
+  try {
+    const { phone } = req.params;
+    const user = await UserModel.findOneAndDelete({ phone });
+    if (!user) {
+      res.status(404).json(failure('User not found'));
+      return;
+    }
+    log.info(ctx, 'User deleted', { phone });
+    res.json(success({ phone, deleted: true }, 'User deleted'));
+  } catch (err) {
+    log.error({ ...ctx, tag: 'userService_internalDeleteUser_failed' }, 'Internal delete user failed', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
+// PUT /internal/users/:phone — update user details
+router.put('/:phone', async (req, res) => {
+  const ctx = { fn: 'internalUpdateUser', tag: 'userService_internalUpdateUser', action: 'INTERNAL_UPDATE_USER' };
+  try {
+    const allowed = ['fullName', 'email', 'role', 'isBlocked', 'blockedReason', 'fcmToken'];
+    const updates: any = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    if (req.body.wallet?.balance !== undefined) updates['wallet.balance'] = req.body.wallet.balance;
+    if (req.body.wallet?.totalSpent !== undefined) updates['wallet.totalSpent'] = req.body.wallet.totalSpent;
+    if (req.body.wallet?.totalEarned !== undefined) updates['wallet.totalEarned'] = req.body.wallet.totalEarned;
+    
+    const user = await UserModel.findOneAndUpdate({ phone: req.params.phone }, updates, { new: true });
+    if (!user) { res.status(404).json(failure('User not found')); return; }
+    log.info(ctx, 'User updated', { phone: req.params.phone });
+    res.json(success(user));
+  } catch (err) {
+    log.error({ ...ctx, tag: 'userService_internalUpdateUser_failed' }, 'Internal update user failed', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
 // GET /internal/users/stats — aggregate stats for admin dashboard
 router.get('/stats', async (_req, res) => {
   const ctx = { fn: 'internalUserStats', tag: 'userService_internalUserStats', action: 'INTERNAL_USER_STATS' };
@@ -60,7 +131,7 @@ router.patch('/:phone/block', async (req, res) => {
 router.patch('/:phone/wallet', async (req, res) => {
   const ctx = { fn: 'internalWalletUpdate', tag: 'userService_internalWalletUpdate', action: 'INTERNAL_WALLET_UPDATE' };
   try {
-    const { amount } = req.body; // positive = credit, negative = debit
+    const { amount } = req.body;
     const user = await UserModel.findOne({ phone: req.params.phone });
     if (!user) { res.status(404).json(failure('User not found')); return; }
 

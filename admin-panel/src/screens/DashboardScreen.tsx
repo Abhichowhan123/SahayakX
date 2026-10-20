@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  ScrollView, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
+  ScrollView, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform,
 } from 'react-native';
 import axios from 'axios';
 import { C } from '../constants/theme';
@@ -9,15 +9,15 @@ import { BASE_URL } from '../api/client';
 
 const SERVICES = [
   { name: 'API Gateway',    path: '/health' },
-  { name: 'Auth',           path: '/auth/health' },
-  { name: 'User',           path: '/users/health' },
-  { name: 'Worker',         path: '/workers/health' },
+  { name: 'Auth Service',   path: '/auth/health' },
+  { name: 'User Service',   path: '/users/health' },
+  { name: 'Worker Service', path: '/workers/health' },
   { name: 'Catalog',        path: '/catalog/health' },
-  { name: 'Booking',        path: '/bookings/health' },
-  { name: 'Payment',        path: '/payments/health' },
+  { name: 'Booking Service', path: '/bookings/health' },
+  { name: 'Payment Service', path: '/payments/health' },
   { name: 'Notification',   path: '/notifications/health' },
   { name: 'Review',         path: '/reviews/health' },
-  { name: 'Admin',          path: '/admin/health' },
+  { name: 'Admin Service',  path: '/admin/health' },
 ];
 
 type ServiceStatus = Record<string, boolean | null>;
@@ -63,34 +63,40 @@ export default function DashboardScreen() {
           : <Text style={s.checkBtnText}>Check All Services</Text>}
       </TouchableOpacity>
 
-      {SERVICES.map((svc) => (
-        <Card key={svc.name}>
-          <View style={s.row}>
-            <View>
-              <Text style={s.svcName}>{svc.name}</Text>
-              <Text style={s.svcPath}>{svc.path}</Text>
-            </View>
-            {statuses[svc.name] != null
-              ? <StatusBadge ok={statuses[svc.name] as boolean} />
-              : <View style={s.dot} />}
+      <View style={Platform.OS === 'web' ? s.grid : {}}>
+        {SERVICES.map((svc) => (
+          <View key={svc.name} style={Platform.OS === 'web' ? s.gridItem : {}}>
+            <Card>
+              <View style={s.row}>
+                <View>
+                  <Text style={s.svcName}>{svc.name}</Text>
+                  <Text style={s.svcPath}>{svc.path}</Text>
+                </View>
+                {statuses[svc.name] != null
+                  ? <StatusBadge ok={statuses[svc.name] as boolean} />
+                  : <View style={s.dot} />}
+              </View>
+            </Card>
           </View>
-        </Card>
-      ))}
+        ))}
+      </View>
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  root:        { flex: 1, backgroundColor: C.bg },
-  content:     { padding: 16, paddingBottom: 40 },
-  heading:     { color: C.text, fontSize: 22, fontWeight: '700', marginBottom: 4 },
-  sub:         { color: C.muted, fontSize: 12, marginBottom: 16 },
-  banner:      { borderRadius: 10, padding: 12, alignItems: 'center', marginBottom: 12 },
-  bannerText:  { color: C.white, fontWeight: '700', fontSize: 15 },
-  checkBtn:    { backgroundColor: C.primary, borderRadius: 10, padding: 14, alignItems: 'center', marginBottom: 16 },
-  checkBtnText:{ color: C.white, fontSize: 15, fontWeight: '600' },
-  row:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  svcName:     { color: C.text, fontSize: 14, fontWeight: '600' },
-  svcPath:     { color: C.muted, fontSize: 11, marginTop: 2 },
-  dot:         { width: 10, height: 10, borderRadius: 5, backgroundColor: C.border },
+  root:     { flex: 1, backgroundColor: C.bg },
+  content:  { padding: 16, paddingBottom: 40 },
+  heading:  { color: C.text, fontSize: 24, fontWeight: '700', marginBottom: 4 },
+  sub:      { color: C.muted, fontSize: 12, marginBottom: 12 },
+  banner:   { padding: 10, borderRadius: 8, marginBottom: 12, alignItems: 'center' },
+  bannerText:{ color: C.white, fontWeight: '600' },
+  checkBtn: { backgroundColor: C.primary, padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 16 },
+  checkBtnText: { color: C.white, fontWeight: '600' },
+  grid:     Platform.OS === 'web' ? { flexDirection: 'row', flexWrap: 'wrap', gap: 12 } : {},
+  gridItem: Platform.OS === 'web' ? { width: '32%' } : { width: '100%' },
+  row:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  svcName:  { color: C.text, fontWeight: '600' },
+  svcPath:  { color: C.muted, fontSize: 12 },
+  dot:      { width: 10, height: 10, borderRadius: 5, backgroundColor: C.border },
 });

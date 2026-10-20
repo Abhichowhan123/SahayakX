@@ -3,34 +3,28 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import { C } from '../constants/theme';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 import AdminLoginScreen  from '../screens/AdminLoginScreen';
 import DashboardScreen   from '../screens/DashboardScreen';
 import AuthTestScreen    from '../screens/AuthTestScreen';
-import UsersScreen       from '../screens/UsersScreen';
 import WorkersScreen     from '../screens/WorkersScreen';
-import CatalogScreen     from '../screens/CatalogScreen';
 import BookingsScreen    from '../screens/BookingsScreen';
 import PaymentsScreen    from '../screens/PaymentsScreen';
-import ReviewsScreen     from '../screens/ReviewsScreen';
 import AdminScreen       from '../screens/AdminScreen';
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-  Dashboard: 'pulse-outline',
-  Auth:      'key-outline',
-  Users:     'person-outline',
-  Workers:   'hammer-outline',
-  Catalog:   'grid-outline',
-  Bookings:  'receipt-outline',
-  Payments:  'card-outline',
-  Reviews:   'star-outline',
-  Admin:     'shield-outline',
+  'Service Health': 'pulse-outline',
+  'Auth Service Test': 'key-outline',
+  'Worker Service': 'hammer-outline',
+  'Booking Service': 'receipt-outline',
+  'Payment Service': 'card-outline',
+  'Admin Panel': 'shield-outline',
 };
 
 const MainTabs = () => (
@@ -38,24 +32,24 @@ const MainTabs = () => (
     screenOptions={({ route }) => ({
       headerStyle:     { backgroundColor: C.card },
       headerTintColor: C.text,
-      tabBarStyle:     { backgroundColor: C.card, borderTopColor: C.border },
+      tabBarStyle:     Platform.OS === 'web' 
+        ? { backgroundColor: C.card, borderTopColor: C.border, height: 60 } 
+        : { backgroundColor: C.card, borderTopColor: C.border },
       tabBarActiveTintColor:   C.primary,
       tabBarInactiveTintColor: C.muted,
-      tabBarShowLabel: false,
+      tabBarLabelStyle: Platform.OS === 'web' ? { fontSize: 12, fontWeight: '600' } : { fontSize: 10 },
+      tabBarShowLabel: true,
       tabBarIcon: ({ color, size }) => (
-        <Ionicons name={icons[route.name] ?? 'ellipse-outline'} size={size} color={color} />
+        <Ionicons name={icons[route.name] ?? 'ellipse-outline'} size={Platform.OS === 'web' ? 22 : size} color={color} />
       ),
     })}
   >
-    <Tab.Screen name="Dashboard" component={DashboardScreen} />
-    <Tab.Screen name="Auth"      component={AuthTestScreen}  />
-    <Tab.Screen name="Users"     component={UsersScreen}     />
-    <Tab.Screen name="Workers"   component={WorkersScreen}   />
-    <Tab.Screen name="Catalog"   component={CatalogScreen}   />
-    <Tab.Screen name="Bookings"  component={BookingsScreen}  />
-    <Tab.Screen name="Payments"  component={PaymentsScreen}  />
-    <Tab.Screen name="Reviews"   component={ReviewsScreen}   />
-    <Tab.Screen name="Admin"     component={AdminScreen}     />
+    <Tab.Screen name="Service Health" component={DashboardScreen} />
+    <Tab.Screen name="Auth Service Test" component={AuthTestScreen} />
+    <Tab.Screen name="Worker Service" component={WorkersScreen} />
+    <Tab.Screen name="Booking Service" component={BookingsScreen} />
+    <Tab.Screen name="Payment Service" component={PaymentsScreen} />
+    <Tab.Screen name="Admin Panel" component={AdminScreen} />
   </Tab.Navigator>
 );
 

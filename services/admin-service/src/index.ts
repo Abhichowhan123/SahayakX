@@ -188,22 +188,116 @@ app.post('/admin/workers/:workerId/block', adminAuth, async (req: any, res) => {
   }
 });
 
-// ─── POST /admin/users/:userId/block ─────────────────────────────────────────
-app.post('/admin/users/:userId/block', adminAuth, async (req: any, res) => {
-  const { userId } = req.params;
-  const { reason } = req.body;
-  const ctx = { fn: 'blockUser', tag: 'adminService_blockUser', userId: req.admin?.username, role: 'admin', action: 'BLOCK_USER' };
-  log.enter(ctx, { targetUserId: userId, reason });
+// ─── User Management ─────────────────────────────────────────────────────────
+app.get('/admin/users', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'getUsers', tag: 'adminService_getUsers', userId: req.admin?.username, role: 'admin', action: 'GET_USERS' };
+  log.enter(ctx, { query: req.query });
 
   try {
-    const { data } = await axios.patch(
-      `${USER_SERVICE_URL}/internal/users/${userId}/block`,
-      { isBlocked: true, blockedReason: reason },
-    );
-    log.info(ctx, 'User blocked', { targetUserId: userId, reason });
+    const { data } = await axios.get(`${USER_SERVICE_URL}/internal/users`, { params: req.query });
+    log.info(ctx, 'Users fetched from user-service');
     res.json(data);
   } catch (err) {
-    log.error({ ...ctx, tag: 'adminService_blockUser_failed' }, 'Failed to block user', err);
+    log.error({ ...ctx, tag: 'adminService_getUsers_failed' }, 'Failed to fetch users', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
+app.get('/admin/users/:phone', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'getUser', tag: 'adminService_getUser', userId: req.admin?.username, role: 'admin', action: 'GET_USER' };
+  log.enter(ctx, { phone: req.params.phone });
+
+  try {
+    const { data } = await axios.get(`${USER_SERVICE_URL}/internal/users/${req.params.phone}`);
+    log.info(ctx, 'User fetched from user-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_getUser_failed' }, 'Failed to fetch user', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
+app.put('/admin/users/:phone', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'updateUser', tag: 'adminService_updateUser', userId: req.admin?.username, role: 'admin', action: 'UPDATE_USER' };
+  log.enter(ctx, { phone: req.params.phone });
+
+  try {
+    const { data } = await axios.put(`${USER_SERVICE_URL}/internal/users/${req.params.phone}`, req.body);
+    log.info(ctx, 'User updated via user-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_updateUser_failed' }, 'Failed to update user', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
+app.delete('/admin/users/:phone', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'deleteUser', tag: 'adminService_deleteUser', userId: req.admin?.username, role: 'admin', action: 'DELETE_USER' };
+  log.enter(ctx, { phone: req.params.phone });
+
+  try {
+    const { data } = await axios.delete(`${USER_SERVICE_URL}/internal/users/${req.params.phone}`);
+    log.info(ctx, 'User deleted via user-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_deleteUser_failed' }, 'Failed to delete user', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
+// ─── Worker Management ───────────────────────────────────────────────────────
+app.get('/admin/workers', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'getWorkers', tag: 'adminService_getWorkers', userId: req.admin?.username, role: 'admin', action: 'GET_WORKERS' };
+  log.enter(ctx, { query: req.query });
+
+  try {
+    const { data } = await axios.get(`${WORKER_SERVICE_URL}/internal/workers`, { params: req.query });
+    log.info(ctx, 'Workers fetched from worker-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_getWorkers_failed' }, 'Failed to fetch workers', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
+app.get('/admin/workers/:workerId', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'getWorker', tag: 'adminService_getWorker', userId: req.admin?.username, role: 'admin', action: 'GET_WORKER' };
+  log.enter(ctx, { workerId: req.params.workerId });
+
+  try {
+    const { data } = await axios.get(`${WORKER_SERVICE_URL}/internal/workers/${req.params.workerId}`);
+    log.info(ctx, 'Worker fetched from worker-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_getWorker_failed' }, 'Failed to fetch worker', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
+app.put('/admin/workers/:workerId', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'updateWorker', tag: 'adminService_updateWorker', userId: req.admin?.username, role: 'admin', action: 'UPDATE_WORKER' };
+  log.enter(ctx, { workerId: req.params.workerId });
+
+  try {
+    const { data } = await axios.put(`${WORKER_SERVICE_URL}/internal/workers/${req.params.workerId}`, req.body);
+    log.info(ctx, 'Worker updated via worker-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_updateWorker_failed' }, 'Failed to update worker', err);
+    res.status(500).json(failure('Internal server error'));
+  }
+});
+
+app.delete('/admin/workers/:workerId', adminAuth, async (req: any, res) => {
+  const ctx = { fn: 'deleteWorker', tag: 'adminService_deleteWorker', userId: req.admin?.username, role: 'admin', action: 'DELETE_WORKER' };
+  log.enter(ctx, { workerId: req.params.workerId });
+
+  try {
+    const { data } = await axios.delete(`${WORKER_SERVICE_URL}/internal/workers/${req.params.workerId}`);
+    log.info(ctx, 'Worker deleted via worker-service');
+    res.json(data);
+  } catch (err) {
+    log.error({ ...ctx, tag: 'adminService_deleteWorker_failed' }, 'Failed to delete worker', err);
     res.status(500).json(failure('Internal server error'));
   }
 });
