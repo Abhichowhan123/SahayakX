@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
   toggleRow:         { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
   toggleBtn:         { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.inputBg },
   toggleBtnActive:   { borderColor: colors.primary, backgroundColor: colors.primary + '15' },
-  toggleBtnText:     { fontSize: FONTS.sizes.sm, color: colors.textSecondary, fontWeight: '600' },
+  toggleBtnText:     { fontSize: FONTS.sizes.sm, color: colors.textMuted, fontWeight: '600' },
   toggleBtnTextActive: { color: colors.primary },
   gpsBtn:            { borderWidth: 1.5, borderColor: colors.primary, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.sm, alignItems: 'center', marginBottom: SPACING.md },
   gpsBtnText:        { fontSize: FONTS.sizes.sm, fontWeight: '700', color: colors.primary },

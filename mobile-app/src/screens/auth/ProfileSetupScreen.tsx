@@ -317,7 +317,7 @@ export default function ProfileSetupScreen() {
         const active = selected.includes(item);
         return (
           <TouchableOpacity key={item} style={[styles.pill, active && { borderColor: themeColors.primary, backgroundColor: themeColors.primary + '20' }]} onPress={() => onPress(item)}>
-            <Text style={[styles.pillText, active && { color: themeColors.primary, fontWeight: '700' }]}>{item}</Text>
+            <Text style={[styles.pillText, { color: themeColors.textMuted }, active && { color: themeColors.primary, fontWeight: '700' }]}>{item}</Text>
           </TouchableOpacity>
         );
       })}
@@ -344,7 +344,7 @@ export default function ProfileSetupScreen() {
 
           {error ? <Text style={[styles.error, { color: themeColors.error }]}>{error}</Text> : null}
 
-          <TouchableOpacity style={[styles.btn, { backgroundColor: themeColors.primary }]} onPress={handleSubmit} disabled={saving}>
+          <TouchableOpacity style={[styles.btn, styles.btnStatic, { backgroundColor: themeColors.primary }]} onPress={handleSubmit} disabled={saving}>
             {saving ? <ActivityIndicator color={themeColors.white} /> : <Text style={[styles.btnText, { color: themeColors.white }]}>Get Started</Text>}
           </TouchableOpacity>
         </ScrollView>
@@ -427,7 +427,7 @@ export default function ProfileSetupScreen() {
                         style={[styles.toggleBtn, extraFields[field.key] === val && { borderColor: themeColors.primary, backgroundColor: themeColors.primary + '20' }]}
                         onPress={() => setToggle(field.key, val)}
                       >
-                        <Text style={[styles.toggleText, extraFields[field.key] === val && { color: themeColors.primary }]}>
+                        <Text style={[styles.toggleText, { color: themeColors.textMuted }, extraFields[field.key] === val && { color: themeColors.primary }]}>
                           {val === 'yes' ? '✓  Yes' : '✗  No'}
                         </Text>
                       </TouchableOpacity>
@@ -592,6 +592,9 @@ const styles = StyleSheet.create({
   backBtnText:        { fontSize: FONTS.sizes.base, fontWeight: '600' },
   btn:                { flex: 1, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md + 2, alignItems: 'center' },
   btnShrink:          { flex: 2 },
+  // For buttons that sit directly in a ScrollView (column): `flex: 1` would
+  // stretch them to fill the remaining height instead of hugging the label.
+  btnStatic:          { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
   btnText:            { fontSize: FONTS.sizes.md, fontWeight: '700' },
 
   // Customer-only

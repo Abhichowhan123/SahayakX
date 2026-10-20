@@ -108,7 +108,7 @@ export default function PhoneScreen({ navigation }: Props) {
               style={[styles.roleBtn, role === r && { backgroundColor: themeColors.primary + '10' }]}
               onPress={() => { setRole(r); setError(''); setNotRegistered(false); }}
             >
-              <Text style={[styles.roleBtnText, role === r && styles.roleBtnTextActive]}>
+              <Text style={[styles.roleBtnText, { color: themeColors.textMuted }, role === r && styles.roleBtnTextActive]}>
                 {r === 'customer' ? '🛒  I need a service' : '👷  I provide service'}
               </Text>
             </TouchableOpacity>
