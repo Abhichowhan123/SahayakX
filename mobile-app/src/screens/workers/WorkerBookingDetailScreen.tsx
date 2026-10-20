@@ -42,9 +42,9 @@ export default function WorkerBookingDetailScreen({ route, navigation }: any) {
       <View style={styles.content}>
         <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={handleEnRoute}><Text style={[styles.btnText, { color: colors.white }]}>Start Journey (En Route)</Text></TouchableOpacity>
         <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={handleArrived}><Text style={[styles.btnText, { color: colors.white }]}>Mark Arrived</Text></TouchableOpacity>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Enter Customer OTP to Start Work</Text>
+        <Text style={[styles.label, { color: colors.textSecondary, marginBottom: SPACING.sm }]}>Enter Customer OTP to Start Work</Text>
         <TextInput style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.border }]} value={otp} onChangeText={setOtp} placeholder="4-digit OTP" keyboardType="numeric" maxLength={4} placeholderTextColor={colors.textMuted} />
-        <TouchableOpacity style={[styles.btn, { backgroundColor: colors.success }]} onPress={submitOtp} disabled={loading}><Text style={[styles.btnText, { color: colors.white }]}>{loading ? 'Verifying...' : 'Start Work'}</Text></TouchableOpacity>
+        <TouchableOpacity style={[styles.btn, { backgroundColor: colors.success, marginTop: SPACING.sm }]} onPress={submitOtp} disabled={loading}><Text style={[styles.btnText, { color: colors.white }]}>{loading ? 'Verifying...' : 'Start Work'}</Text></TouchableOpacity>
         <TouchableOpacity style={[styles.btn, { backgroundColor: colors.success }]} onPress={complete}><Text style={[styles.btnText, { color: colors.white }]}>Complete Job</Text></TouchableOpacity>
         <TouchableOpacity style={[styles.btn, { backgroundColor: colors.error }]} onPress={handleReject}><Text style={[styles.btnText, { color: colors.white }]}>Reject Booking</Text></TouchableOpacity>
       </View>

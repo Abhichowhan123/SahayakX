@@ -242,9 +242,9 @@ export default function BookingTrackingScreen({ navigation, route }: Props) {
               {booking.status === 'arrived' && (
                 <View>
                   <Text style={[styles.otpTitle, { color: themeColors.textSecondary }]}>Enter Customer OTP to Start Work</Text>
-                  <View style={styles.otpInputRow}>
+                  <View style={[styles.otpInputRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
                     <TextInput
-                      style={[styles.otpInput, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary, borderColor: themeColors.border, borderWidth: 1 }]}
+                      style={[styles.otpInput, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary, borderColor: themeColors.border }]}
                       value={otp}
                       onChangeText={setOtp}
                       placeholder="Enter OTP"
@@ -252,7 +252,7 @@ export default function BookingTrackingScreen({ navigation, route }: Props) {
                       maxLength={4}
                       placeholderTextColor={themeColors.textMuted}
                     />
-                    <TouchableOpacity style={[styles.otpBtn, { backgroundColor: themeColors.primary }]} onPress={handleStartWork} disabled={otpLoading}>
+                    <TouchableOpacity style={[styles.otpBtn, { backgroundColor: themeColors.primary, width: '100%', marginTop: SPACING.sm }]} onPress={handleStartWork} disabled={otpLoading}>
                       {otpLoading ? <ActivityIndicator color={themeColors.white} /> : <Text style={[styles.otpBtnText, { color: themeColors.white }]}>Start Work</Text>}
                     </TouchableOpacity>
                   </View>
