@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, SafeAreaView,
 } from 'react-native';
+import { useFocusEffect }                from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList }        from '../../navigation';
 import { bookingApi }                from '../../api';
@@ -49,7 +50,9 @@ export default function BookingHistoryScreen({ navigation }: Props) {
     }
   }, [filter]);
 
-  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+  // Refetch on every focus so a booking cancelled (or updated) on the
+  // tracking screen shows its latest status when the user comes back.
+  useFocusEffect(useCallback(() => { fetchBookings(); }, [fetchBookings]));
 
   const renderItem = ({ item }: { item: any }) => {
     const statusColor = STATUS_COLORS[item.status] || colors.textMuted;
@@ -58,7 +61,7 @@ export default function BookingHistoryScreen({ navigation }: Props) {
     return (
       <TouchableOpacity
         style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
-        onPress={() => navigation.navigate('BookingTracking', { bookingId: item.bookingId })}
+        onPress={() => navigation.navigate('BookingTracking', { bookingId: item.bookingId || item._id })}
         activeOpacity={0.85}
       >
         <View style={styles.cardTop}>
@@ -114,7 +117,7 @@ export default function BookingHistoryScreen({ navigation }: Props) {
         : (
           <FlatList
             data={bookings}
-            keyExtractor={(item) => item._id}
+            keyExtractor={(item) => item.bookingId || item._id}
             renderItem={renderItem}
             contentContainerStyle={styles.list}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchBookings(); }} tintColor={colors.primary} />}

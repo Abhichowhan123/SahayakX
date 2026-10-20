@@ -31,6 +31,7 @@ export interface IBookingDocument extends Document {
     startedAt?:         Date;
     completedAt?:       Date;
     expiresAt?:         Date;
+    scheduledAt?:       Date;
   };
 
   location: {
@@ -40,8 +41,11 @@ export interface IBookingDocument extends Document {
 
   
   otp: {
-    code:     string;
-    verified: boolean;
+    code?:     string;
+    hash?:     string;
+    expiresAt?: Date;
+    attempts?: number;
+    verified:  boolean;
   };
 
   cancellation?: {
@@ -91,6 +95,7 @@ const BookingSchema = new Schema<IBookingDocument>({
     startedAt:         Date,
     completedAt:       Date,
     expiresAt:         Date,
+    scheduledAt:       Date,
   },
 
   location: {
@@ -107,7 +112,13 @@ const BookingSchema = new Schema<IBookingDocument>({
   },
 
   otp: {
-    code:     { type: String, required: true },
+    // Plain 4-digit code the customer shares with the worker. Not required at
+    // the schema level because bookings created by older app versions stored
+    // only `hash` — making it required makes every save() of those fail.
+    code:     { type: String },
+    hash:     { type: String },
+    expiresAt: Date,
+    attempts: { type: Number, default: 0 },
     verified: { type: Boolean, default: false },
   },
 

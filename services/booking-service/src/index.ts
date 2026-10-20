@@ -17,7 +17,7 @@ import {
   createRequestContextMiddleware,
   setRedisGeoClient,
 } from '@serveease/shared/utils';
-import { setBookingLockClient } from './controllers/booking.controller';
+import { setBookingLockClient, setWorkerBookingLockClient } from './controllers/booking.controller';
 
 dotenv.config();
 
@@ -48,6 +48,32 @@ io.on('connection', (socket) => {
     socket.join(`booking_${bookingId}`);
   });
 
+  socket.on('chat_message', async ({ bookingId, sender, text }: any) => {
+    try {
+      const { BookingModel } = await import('./models/booking.model');
+      const { MessageModel } = await import('./models/message.model');
+      const booking = await BookingModel.findOne({ bookingId });
+      const chatAllowed = booking && ['accepted','worker_en_route','arrived','in_progress','completed','payment_done'].includes(booking.status);
+      if (!chatAllowed) return;
+      const message = await MessageModel.create({
+        bookingId,
+        senderId:   sender,
+        senderRole: booking.customerId === sender ? 'customer' : 'worker',
+        text,
+      });
+      io.to(`booking_${bookingId}`).emit('new_message', {
+        bookingId,
+        sender,
+        senderRole: message.senderRole,
+        text: message.text,
+        createdAt: message.createdAt?.toISOString() ?? new Date().toISOString(),
+        id: message._id.toString(),
+      });
+    } catch (err) {
+      log.error({ fn: 'socketChat', action: 'CHAT_MESSAGE' }, 'Failed to relay chat message', err);
+    }
+  });
+
   socket.on('worker_location_update', ({ bookingId, lat, lng }: any) => {
     io.to(`booking_${bookingId}`).emit('worker_moved', { lat, lng });
   });
@@ -63,11 +89,31 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 
+const dispatchScheduledBookings = async () => {
+  const { BookingModel } = await import('./models/booking.model');
+  const { BookingStatus } = await import('@serveease/shared/types');
+  try {
+    const now = new Date();
+    const due = await BookingModel.find({
+      status: BookingStatus.SEARCHING,
+      'schedule.scheduledAt': { $ne: null, $lte: now },
+      dispatchedTo: { $size: 0 },
+    });
+    const { dispatchWave } = await import('./controllers/booking.controller');
+    for (const booking of due) {
+      const loc = (booking as any).location?.geo?.coordinates;
+      const location = loc ? { lat: loc[1], lng: loc[0] } : undefined;
+      await dispatchWave(booking.bookingId, location);
+    }
+    if (due.length > 0) log.info({ fn: 'dispatchScheduledBookings', action: 'SCHEDULED_DISPATCH' }, 'Dispatched scheduled bookings', { count: due.length });
+  } catch (err) {
+    log.error({ fn: 'dispatchScheduledBookings', action: 'SCHEDULED_DISPATCH' }, 'Failed to dispatch scheduled bookings', err);
+  }
+};
 const cleanupExpiredBookings = async () => {
   const { BookingModel } = await import('./models/booking.model');
   const { BookingStatus } = await import('@serveease/shared/types');
-  const { QueueName } = await import('@serveease/shared/events');
-  const { publishEvent } = await import('@serveease/shared/events');
+  const { QueueName, publishEvent } = await import('@serveease/shared/events');
   try {
     const now = new Date();
     const expired = await BookingModel.find({
@@ -103,6 +149,7 @@ const start = async () => {
   const lockClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
   await lockClient.connect();
   setBookingLockClient(lockClient as any);
+  setWorkerBookingLockClient(lockClient as any);
   log.info({ fn: 'start', action: 'STARTUP' }, 'Redis lock client connected');
 
   // Also initialize Redis GEO client for nearby worker lookups
@@ -113,7 +160,9 @@ const start = async () => {
 
   // Recover any expired bookings from previous crashes
   await cleanupExpiredBookings();
+  await dispatchScheduledBookings();
   setInterval(cleanupExpiredBookings, 30 * 1000);
+  setInterval(dispatchScheduledBookings, 30 * 1000);
 
   server.listen(PORT, () => log.info({ fn: 'start', action: 'STARTUP' }, 'Booking service started', { port: PORT, websocket: true }));
 };

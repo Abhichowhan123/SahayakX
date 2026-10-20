@@ -5,11 +5,13 @@ import {
 } from 'react-native';
 import { bookingApi, workerApi } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { SPACING, BORDER_RADIUS, FONTS } from '../../constants';
 
 export default function WorkerDashboard() {
   const { isOnline, setOnline } = useAuth();
+  const navigation = useNavigation<any>();
   const { colors } = useTheme();
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);
   const [activeBooking,   setActiveBooking]   = useState<any>(null);
@@ -50,7 +52,10 @@ export default function WorkerDashboard() {
       const { data } = await bookingApi.accept(bookingId);
       Alert.alert('Accepted!', `Show this OTP to start: ${data.data.otp}`);
       setPendingBookings((prev) => prev.filter((b) => b.bookingId !== bookingId));
+      await loadData(false);
+      navigation.navigate('BookingTracking', { bookingId });
     } catch (err: any) {
+      console.error('Accept failed', err?.response?.status, err?.response?.data);
       Alert.alert('Error', err?.response?.data?.message || 'Could not accept booking');
     }
   };
@@ -93,10 +98,10 @@ export default function WorkerDashboard() {
 
       {/* Active job banner */}
       {activeBooking && (
-        <View style={[styles.activeBanner, { backgroundColor: colors.primary }]}>
+        <TouchableOpacity onPress={() => navigation.navigate('BookingTracking', { bookingId: activeBooking.bookingId || activeBooking._id })} style={[styles.activeBanner, { backgroundColor: colors.primary }]}>
           <Text style={[styles.activeBannerText, { color: colors.white }]}>🔨 Active job in progress</Text>
           <Text style={[styles.activeBannerSub, { color: colors.white + 'CC' }]}>{activeBooking.serviceCategory?.replace(/_/g, ' ')} · ₹{activeBooking.pricing?.totalAmount}</Text>
-        </View>
+        </TouchableOpacity>
       )}
 
       {/* New requests */}
@@ -115,7 +120,7 @@ export default function WorkerDashboard() {
 
       <FlatList
         data={pendingBookings}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item) => item.bookingId || item._id}
         renderItem={renderRequest}
         contentContainerStyle={styles.list}
       />

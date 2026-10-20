@@ -22,12 +22,18 @@ export enum BookingStatus {
   SEARCHING              = 'searching',
   ACCEPTED               = 'accepted',
   WORKER_EN_ROUTE        = 'worker_en_route',
+  ARRIVED                = 'arrived',
   IN_PROGRESS            = 'in_progress',
   COMPLETED              = 'completed',
+  PAYMENT_DONE           = 'payment_done',
+  RATED                  = 'rated',
+  CLOSED                 = 'closed',
   CANCELLED_BY_CUSTOMER  = 'cancelled_by_customer',
   CANCELLED_BY_WORKER    = 'cancelled_by_worker',
+  REJECTED               = 'rejected',
   DISPUTED               = 'disputed',
   EXPIRED                = 'expired',
+  PAYMENT_FAILED         = 'payment_failed',
 }
 
 export enum PaymentMethod {

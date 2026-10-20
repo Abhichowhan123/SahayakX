@@ -233,12 +233,16 @@ export const bookingApi = {
 
   getById:        (bookingId: string) => api.get(`/bookings/${bookingId}`),
   accept:         (bookingId: string) => api.put(`/bookings/${bookingId}/accept`),
+  reject:         (bookingId: string) => api.put(`/bookings/${bookingId}/reject`),
   enRoute:        (bookingId: string) => api.put(`/bookings/${bookingId}/en-route`),
+  arrived:        (bookingId: string) => api.put(`/bookings/${bookingId}/arrived`),
   startWork:      (bookingId: string, otp: string) =>
     api.post(`/bookings/${bookingId}/start`, { otp }),
   completeWork:   (bookingId: string) => api.put(`/bookings/${bookingId}/complete`),
   cancel:         (bookingId: string, reason?: string) =>
     api.post(`/bookings/${bookingId}/cancel`, { reason }),
+  getMessages:    (bookingId: string) => api.get(`/bookings/${bookingId}/messages`),
+  sos:            (bookingId: string) => api.post(`/bookings/${bookingId}/sos`),
 };
 
 // ─── Payments ─────────────────────────────────────────────────────────────────

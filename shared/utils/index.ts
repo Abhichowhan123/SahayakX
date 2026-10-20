@@ -32,8 +32,8 @@ export const findNearbyWorkers = async (
   const members = await (client as any).geoSearch(
     'workers:online',
     { longitude: lng, latitude: lat },
-    'unit',
-    { unit: 'km', radius: radiusKm, order: 'ASC', count: limit },
+    { radius: radiusKm, unit: 'km' },
+    { SORT: 'ASC', COUNT: limit },
   );
   return members as string[];
 };
@@ -59,16 +59,25 @@ export const generateBookingId = (): string => {
 
 // ─── Encryption (for Aadhaar/bank details) ───────────────────────────────────
 
-const ALGORITHM  = 'aes-256-gcm';
-const SECRET_KEY = process.env.ENCRYPTION_KEY;
-if (!SECRET_KEY) {
-  throw new Error('ENCRYPTION_KEY env var is required');
-}
-const KEY        = crypto.scryptSync(SECRET_KEY, 'salt', 32);
+const ALGORITHM = 'aes-256-gcm';
+
+let cachedKey: Buffer | null = null;
+
+// Resolved lazily so importing this module never fails — services that never
+// encrypt/decrypt don't need ENCRYPTION_KEY to boot.
+const getKey = (): Buffer => {
+  if (cachedKey) return cachedKey;
+  const secret = process.env.ENCRYPTION_KEY;
+  if (!secret) {
+    throw new Error('ENCRYPTION_KEY env var is required');
+  }
+  cachedKey = crypto.scryptSync(secret, 'salt', 32);
+  return cachedKey;
+};
 
 export const encrypt = (text: string): string => {
   const iv         = crypto.randomBytes(16);
-  const cipher     = crypto.createCipheriv(ALGORITHM, KEY, iv);
+  const cipher     = crypto.createCipheriv(ALGORITHM, getKey(), iv);
   const encrypted  = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
   const authTag    = cipher.getAuthTag();
   return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`;
@@ -79,7 +88,7 @@ export const decrypt = (encryptedText: string): string => {
   const iv        = Buffer.from(ivHex, 'hex');
   const authTag   = Buffer.from(authTagHex, 'hex');
   const encrypted = Buffer.from(encryptedHex, 'hex');
-  const decipher  = crypto.createDecipheriv(ALGORITHM, KEY, iv);
+  const decipher  = crypto.createDecipheriv(ALGORITHM, getKey(), iv);
   decipher.setAuthTag(authTag);
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 };

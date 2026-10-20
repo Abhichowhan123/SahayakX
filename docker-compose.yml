@@ -117,6 +117,7 @@ services:
       - MONGODB_URI=mongodb://mongo-auth:27017/serveease_auth
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://serveease:serveease123@rabbitmq:5672
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
     networks: [serveease-net]
     depends_on:
       mongo-auth:   { condition: service_healthy }
@@ -134,6 +135,7 @@ services:
       - PORT=3002
       - MONGODB_URI=mongodb://mongo-user:27017/serveease_users
       - AUTH_SERVICE_URL=http://auth-service:3001
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
     networks: [serveease-net]
     depends_on: [auth-service, mongo-user]
     restart: unless-stopped
@@ -149,6 +151,7 @@ services:
       - MONGODB_URI=mongodb://mongo-worker:27017/serveease_workers
       - REDIS_URL=redis://redis:6379
       - AUTH_SERVICE_URL=http://auth-service:3001
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
     networks: [serveease-net]
     depends_on: [auth-service, redis, mongo-worker]
     restart: unless-stopped
@@ -161,6 +164,7 @@ services:
     environment:
       - PORT=3004
       - REDIS_URL=redis://redis:6379
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
     networks: [serveease-net]
     depends_on:
       redis: { condition: service_healthy }
@@ -181,8 +185,13 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:3001
       - WORKER_SERVICE_URL=http://worker-service:3003
       - PAYMENT_SERVICE_URL=http://payment-service:3006
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
     networks: [serveease-net]
-    depends_on: [auth-service, worker-service, rabbitmq, mongo-booking]
+    depends_on:
+      auth-service:  { condition: service_started }
+      worker-service: { condition: service_started }
+      rabbitmq:      { condition: service_healthy }
+      mongo-booking: { condition: service_started }
     restart: unless-stopped
 
   payment-service:
@@ -198,8 +207,12 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:3001
       - WORKER_SERVICE_URL=http://worker-service:3003
       - USER_SERVICE_URL=http://user-service:3002
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
     networks: [serveease-net]
-    depends_on: [auth-service, rabbitmq, mongo-payment]
+    depends_on:
+      auth-service:  { condition: service_started }
+      rabbitmq:      { condition: service_healthy }
+      mongo-payment: { condition: service_started }
     restart: unless-stopped
 
   notification-service:
@@ -211,6 +224,7 @@ services:
     environment:
       - PORT=3007
       - RABBITMQ_URL=amqp://serveease:serveease123@rabbitmq:5672
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
     networks: [serveease-net]
     depends_on:
       rabbitmq: { condition: service_healthy }
@@ -226,6 +240,7 @@ services:
       - MONGODB_URI=mongodb://mongo-review:27017/serveease_reviews
       - AUTH_SERVICE_URL=http://auth-service:3001
       - WORKER_SERVICE_URL=http://worker-service:3003
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
     networks: [serveease-net]
     depends_on: [auth-service, mongo-review]
     restart: unless-stopped
@@ -244,6 +259,7 @@ services:
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=admin123
       - ADMIN_JWT_SECRET=admin_dev_secret_change_in_prod
+      - ENCRYPTION_KEY=2178136c6873d17129fff3a832b99648b77e2b0a41df13c07e43f3a06a23a8d3
     networks: [serveease-net]
     depends_on: [worker-service, user-service, booking-service]
     restart: unless-stopped

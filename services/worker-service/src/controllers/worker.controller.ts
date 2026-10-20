@@ -308,12 +308,17 @@ export const getWorkerById = async (req: Request, res: Response): Promise<void> 
   log.enter(ctx, { workerId: id });
 
   try {
-    const worker = await WorkerModel.findById(id, {
+    const excludeFields = {
       'verification.aadhaarNumber': 0,
       'verification.bankAccount':   0,
       'verification.panNumber':     0,
-    });
-    log.db(ctx, 'WorkerModel.findById', { found: !!worker });
+    };
+
+    let worker = await WorkerModel.findById(id, excludeFields).catch(() => null);
+    if (!worker) {
+      worker = await WorkerModel.findOne({ phone: id }, excludeFields);
+    }
+    log.db(ctx, 'WorkerModel.findById/findOne', { found: !!worker });
 
     if (!worker) {
       log.warn(ctx, 'Worker not found by id', { workerId: id });
@@ -336,8 +341,11 @@ export const getWorkerByIdInternal = async (req: Request, res: Response): Promis
   log.enter(ctx, { workerId: id });
 
   try {
-    const worker = await WorkerModel.findById(id);
-    log.db(ctx, 'WorkerModel.findById (internal, full fields)', { found: !!worker });
+    let worker = await WorkerModel.findById(id).catch(() => null);
+    if (!worker) {
+      worker = await WorkerModel.findOne({ phone: id });
+    }
+    log.db(ctx, 'WorkerModel.findById/findOne (internal, full fields)', { found: !!worker });
 
     if (!worker) {
       log.warn(ctx, 'Worker not found by id (internal call)', { workerId: id });

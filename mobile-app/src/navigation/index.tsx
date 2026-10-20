@@ -17,12 +17,14 @@ import HomeScreen           from '../screens/home/HomeScreen';
 import WorkerListScreen     from '../screens/workers/WorkerListScreen';
 import WorkerProfileScreen  from '../screens/workers/WorkerProfileScreen';
 import BookingTrackingScreen from '../screens/booking/BookingTrackingScreen';
+import ChatScreen            from '../screens/booking/ChatScreen';
 import BookingHistoryScreen from '../screens/booking/BookingHistoryScreen';
 import ProfileScreen        from '../screens/profile/ProfileScreen';
 import EditProfileScreen    from '../screens/profile/EditProfileScreen';
 import AddressesScreen      from '../screens/profile/AddressesScreen';
 // Worker screens
 import WorkerDashboard      from '../screens/workers/WorkerDashboard';
+import WorkerBookingDetailScreen from '../screens/workers/WorkerBookingDetailScreen';
 import VerificationScreen   from '../screens/auth/VerificationScreen';
 import WorkerVerificationStatusScreen from '../screens/workers/WorkerVerificationStatusScreen';
 
@@ -32,6 +34,8 @@ export type RootStackParamList = {
   WorkerList:       { category: string; subType?: string; categoryLabel: string };
   WorkerProfile:    { workerId: string };
   BookingTracking:  { bookingId: string };
+  Chat:             { bookingId: string };
+  WorkerBookingDetail: { bookingId: string };
   EditProfile:      undefined;
   Addresses:        undefined;
   Verification:     undefined;
@@ -145,6 +149,8 @@ export default function AppNavigator() {
             <Stack.Screen name="WorkerList"       component={WorkerListScreen}      />
             <Stack.Screen name="WorkerProfile"    component={WorkerProfileScreen}   />
             <Stack.Screen name="BookingTracking"  component={BookingTrackingScreen} />
+            <Stack.Screen name="Chat"             component={ChatScreen}             />
+            <Stack.Screen name="WorkerBookingDetail" component={WorkerBookingDetailScreen} />
             <Stack.Screen name="EditProfile"      component={EditProfileScreen}     />
             <Stack.Screen name="Addresses"        component={AddressesScreen}       />
             <Stack.Screen name="Verification"     component={VerificationScreen}    />
